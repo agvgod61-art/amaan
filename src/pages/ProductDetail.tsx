@@ -280,6 +280,29 @@ function ProductDetail() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<"not_scanned" | "scanning" | "verified">("not_scanned");
 
+  useEffect(() => {
+    if (!product) return;
+    const availableColors = product.colors && product.colors.length > 0 ? product.colors : 
+      (product.type === "Full-face" || product.name.toLowerCase().includes("helmet")) ? [
+        { name: product.color || "Matte Black", hex: "#111827", image: product.image },
+        { name: "Pearl Gloss White", hex: "#F3F4F6", image: product.image },
+        { name: "Stealth Grey", hex: "#4B5563", image: product.image },
+        { name: "Carbon Crimson", hex: "#BE123C", image: product.image }
+      ] : 
+      product.type === "Motorcycle" ? [
+        { name: "Kawasaki Racing Green", hex: "#15803D", image: product.image },
+        { name: "Midnight Stealth Edition", hex: "#1A1A1A", image: product.image },
+        { name: "Firecracker Red", hex: "#B91C1C", image: product.image }
+      ] : 
+      product.color ? [
+        { name: product.color, hex: "#10B981", image: product.image }
+      ] : [];
+
+    if (availableColors.length > 0 && !selectedColor) {
+      setSelectedColor(availableColors[0].name);
+    }
+  }, [product, selectedColor]);
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-6 text-center px-6">
@@ -376,12 +399,6 @@ function ProductDetail() {
     product.color ? [
       { name: product.color, hex: "#10B981", image: product.image }
     ] : [];
-
-  useEffect(() => {
-    if (availableColors.length > 0 && !selectedColor) {
-      setSelectedColor(availableColors[0].name);
-    }
-  }, [availableColors, selectedColor]);
 
   const activeColor = availableColors.find(c => c.name === selectedColor);
 
