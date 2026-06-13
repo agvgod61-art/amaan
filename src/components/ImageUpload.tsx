@@ -1,0 +1,150 @@
+import React, { useState } from 'react';
+import { AlertCircle } from 'lucide-react';
+import { optimizeImage } from '../lib/imageUtils';
+import { cn } from '../lib/utils';
+
+interface ImageUploadProps {
+  onUploadComplete: (url: string) => void;
+  label?: string;
+  className?: string;
+  initialUrl?: string;
+  accept?: string;
+}
+
+export default function ImageUpload({ onUploadComplete, label = "Upload Image", className, initialUrl, accept = "image/*" }: ImageUploadProps) {
+  const [uploading, setUploading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(initialUrl || null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate based on accept prop
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    const isPdf = file.type === 'application/pdf';
+
+    if (accept.includes('image/') && !isImage && accept !== '*') {
+       // If it's supposed to be an image but isn't
+       if (!isVideo && !isPdf) {
+         setError("Please select a valid image file");
+         return;
+       }
+    }
+
+    // Local preview for images
+    if (isImage) {
+      const localUrl = URL.createObjectURL(file);
+      setPreview(localUrl);
+    } else {
+      setPreview(null);
+    }
+
+    setUploading(true);
+    setError(null);
+    setSuccess(false);
+
+    try {
+      let fileToUpload: File | Blob = file;
+
+      // High-Speed Client-Side Optimization for images
+      if (isImage) {
+        fileToUpload = await optimizeImage(file);
+      }
+
+      // Convert to data URL instead of uploading to cloud storage
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        onUploadComplete(base64);
+        setSuccess(true);
+        if (isImage) setPreview(base64);
+        setUploading(false);
+      };
+      reader.readAsDataURL(fileToUpload);
+    } catch (err: any) {
+      setError(err.message || "Failed to process image");
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className={cn("space-y-2", className)}>
+      <div className="flex items-center justify-between ml-1">
+        <label className="text-[10px] uppercase font-bold tracking-widest text-brand-metallic">
+          {label}
+        </label>
+      </div>
+      
+      <div className="relative group overflow-hidden">
+        <input 
+          type="file" 
+          accept={accept}
+          onChange={handleFileChange}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20 disabled:cursor-not-allowed"
+          disabled={uploading}
+        />
+        
+        <div className={cn(
+          "w-full bg-white/5 border border-dashed border-white/20 p-6 flex flex-col items-center justify-center gap-3 transition-all group-hover:border-brand-accent group-hover:bg-brand-accent/5 aspect-video relative",
+          success && "border-green-500/30 bg-green-500/5",
+          error && "border-brand-accent/50 bg-brand-accent/5"
+        )}>
+          {preview ? (
+            <div className="absolute inset-0 z-0">
+               <img 
+                 src={preview} 
+                 alt="Preview" 
+                 className={cn(
+                   "w-full h-full object-cover contrast-125 transition-all duration-500",
+                   uploading ? "opacity-20 scale-105" : "opacity-50"
+                 )}
+                 referrerPolicy="no-referrer"
+               />
+                {uploading && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 backdrop-blur-[2px]">
+                    <div className="w-8 h-8 border-2 border-brand-accent border-t-transparent rounded-full animate-spin mb-3" />
+                    <span className="text-[8px] text-white uppercase tracking-[0.3em] font-bold animate-pulse">Processing Asset</span>
+                  </div>
+                )}
+            </div>
+          ) : null}
+
+          <div className="relative z-10 flex flex-col items-center justify-center gap-2">
+            {error ? (
+              <div className="flex flex-col items-center gap-2">
+                <AlertCircle className="text-red-500" size={24} />
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setError(null);
+                    setSuccess(false);
+                  }}
+                  className="text-[8px] bg-red-500/10 text-red-500 border border-red-500/20 px-2 py-1 hover:bg-red-500 hover:text-white transition-all uppercase font-bold"
+                >
+                  Reset & Retry
+                </button>
+              </div>
+            ) : (!preview && !uploading) ? (
+              <div className="w-6 h-6 border border-white/20 rounded-full flex items-center justify-center">
+                <div className="w-1 h-1 bg-white rounded-full animate-ping" />
+              </div>
+            ) : null}
+
+            <div className="text-center">
+              <p className={cn(
+                 "text-[10px] font-bold uppercase tracking-widest",
+                 success ? "text-green-500" : error ? "text-red-500" : "text-white"
+              )}>
+                {uploading ? "" : success ? "" : error ? "Failed" : "Select Image"}
+              </p>
+              {error && <p className="text-[7px] text-red-500 uppercase mt-1 max-w-[200px] mx-auto leading-tight italic font-bold">{error}</p>}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
