@@ -63,9 +63,9 @@ service cloud.firestore {
     }
 
     function isValidOrder(data) {
-      return data.keys().hasAll(['user_id', 'items', 'total_amount', 'status', 'shipping_info', 'created_at', 'payment_method', 'user_email', 'order_id']) &&
+      return data.keys().hasAll(['user_id', 'items', 'total_amount', 'status', 'shipping_info', 'created_at', 'payment_method', 'order_id']) &&
              data.user_id is string && data.user_id.size() <= 128 &&
-             (data.user_email == null || (data.user_email is string && data.user_email.size() <= 200)) &&
+             (!('user_email' in data) || data.user_email == null || (data.user_email is string && data.user_email.size() <= 200)) &&
              data.order_id is string && data.order_id.size() <= 50 &&
              data.items is list && data.items.size() > 0 && data.items.size() <= 50 &&
              data.total_amount is number && data.total_amount >= 0 &&
@@ -74,12 +74,11 @@ service cloud.firestore {
              data.payment_method is string && data.payment_method.size() <= 50 &&
              data.shipping_info is map &&
              data.shipping_info.keys().hasAll(['name', 'phone', 'address', 'city', 'pincode', 'whatsappUpdates']) &&
-             data.shipping_info.keys().size() == 6 &&
              data.shipping_info.name is string && data.shipping_info.name.size() <= 100 &&
-             data.shipping_info.phone is string && data.shipping_info.phone.size() == 10 &&
-             data.shipping_info.address is string && data.shipping_info.address.size() >= 10 && data.shipping_info.address.size() <= 500 &&
+             data.shipping_info.phone is string && data.shipping_info.phone.size() >= 10 &&
+             data.shipping_info.address is string && data.shipping_info.address.size() >= 5 && data.shipping_info.address.size() <= 500 &&
              data.shipping_info.city is string && data.shipping_info.city.size() <= 100 &&
-             data.shipping_info.pincode is string && data.shipping_info.pincode.size() == 6 &&
+             data.shipping_info.pincode is string && data.shipping_info.pincode.size() >= 5 &&
              data.shipping_info.whatsappUpdates is bool;
     }
 

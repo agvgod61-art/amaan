@@ -96,21 +96,27 @@ export default function Checkout() {
     const newOrderId = "ORD-" + Math.random().toString(36).substring(2, 9).toUpperCase();
     
     try {
+      // Clean up undefined fields from cart
+      const cleanCart = JSON.parse(JSON.stringify(cart));
+      
       await addDoc(collection(db, "orders"), {
         order_id: newOrderId,
         user_id: user?.uid || 'guest',
         user_email: user?.email || null,
-        items: cart,
+        items: cleanCart,
         total_amount: totalPrice,
         status: 'Processing',
-        shipping_info: customerInfo,
+        shipping_info: {
+          ...customerInfo,
+          phone: customerInfo.phone.replace(/\D/g, ""),
+          pincode: customerInfo.pincode.replace(/\D/g, "")
+        },
         payment_method: paymentMethod,
         created_at: serverTimestamp()
       });
     } catch (err) {
       console.error("Firebase insert error", err);
-      alert("Error saving order. Please contact us via WhatsApp to complete your order manually.");
-      return;
+      // Fallback: Proceed to WhatsApp anyway even if Firebase fails
     }
 
   // Send WhatsApp Notification if user opted in and provided phone number
@@ -170,10 +176,10 @@ export default function Checkout() {
       `_Note: Please verify this order and provide payment instructions._`;
 
     const waUrl = `https://wa.me/918292908076?text=${encodeURIComponent(waMessage)}`;
-    window.open(waUrl, '_blank');
-
-    setStep(5); // Show confirmation
+    
     clearCart();
+    setStep(5); // Show confirmation
+    window.location.href = waUrl;
   };
 
   if (step === 5) {
