@@ -1,19 +1,38 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { AlertCircle, Loader2, Shield, Mail, Lock } from 'lucide-react';
+import { AlertCircle, Loader2, Shield, Mail, Lock, Chrome } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { 
-  signInWithEmailAndPassword 
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut
 } from 'firebase/auth';
 
 export default function Auth() {
+  const [isSignIn, setIsSignIn] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
+
+  const handleGoogleSignIn = async () => {
+    setError(null);
+    setSuccessMsg(null);
+    setLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      navigate('/');
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during Google Sign In.');
+      setLoading(false);
+    }
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,8 +41,19 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigate('/');
+      if (isSignIn) {
+        await signInWithEmailAndPassword(auth, email, password);
+        navigate('/');
+      } else {
+        await createUserWithEmailAndPassword(auth, email, password);
+        // Firebase logs the user in immediately on signup.
+        // If we want to verify email, we can sign them out and show a message.
+        await signOut(auth);
+        
+        setIsSignIn(true);
+        setPassword('');
+        setSuccessMsg("Account created successfully. Please sign in or check your email to confirm.");
+      }
     } catch (err: any) {
       setError(err.message || 'An error occurred during authentication.');
     } finally {
@@ -46,10 +76,10 @@ export default function Auth() {
         <div className="text-center mb-10">
           <Shield className="w-12 h-12 text-brand-accent mx-auto mb-6" />
           <h1 className="text-3xl font-display font-bold uppercase tracking-widest mb-2">
-            Admin Sign In
+            {isSignIn ? "Sign In" : "Create Account"}
           </h1>
           <p className="text-brand-metallic text-xs uppercase tracking-widest font-medium">
-            Welcome Back
+            {isSignIn ? "Welcome Back" : "Join AVG God"}
           </p>
         </div>
 
@@ -90,7 +120,7 @@ export default function Auth() {
             {loading ? (
               <Loader2 className="animate-spin" size={16} />
             ) : (
-              "Sign In"
+              isSignIn ? "Sign In" : "Sign Up"
             )}
           </button>
         </form>
@@ -122,6 +152,38 @@ export default function Auth() {
               </motion.div>
             )}
           </AnimatePresence>
+        </div>
+
+        <div className="mt-6 flex flex-col gap-4">
+          <button 
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            className="w-full bg-white/5 border border-white/10 py-5 px-6 flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-brand-black transition-all disabled:opacity-50"
+          >
+            {loading ? (
+              <Loader2 className="animate-spin" size={18} />
+            ) : (
+              <>
+                <Chrome size={18} />
+                <span>Continue with Google</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        <div className="mt-8 pt-6 border-t border-white/10 text-center">
+          <button
+            type="button"
+            onClick={() => {
+              setIsSignIn(!isSignIn);
+              setError(null);
+              setSuccessMsg(null);
+            }}
+            className="text-white/60 hover:text-white text-xs uppercase tracking-widest font-medium transition-colors"
+          >
+            {isSignIn ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
+          </button>
         </div>
       </motion.div>
     </div>

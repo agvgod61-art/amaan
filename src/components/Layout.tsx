@@ -144,7 +144,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {user ? (
               <div className="hidden md:flex items-center gap-4 border-l border-white/10 pl-6">
                 <Link to="/profile" className="flex flex-col items-end group">
-                  <span className="text-[10px] text-white font-bold uppercase tracking-widest group-hover:text-brand-accent transition-colors">{user.displayName || 'Admin'}</span>
+                  <span className="text-[10px] text-white font-bold uppercase tracking-widest group-hover:text-brand-accent transition-colors">{user.displayName || 'Customer'}</span>
                   <span className="text-[9px] text-brand-metallic uppercase tracking-[0.2em] font-bold transition-colors">Dashboard</span>
                 </Link>
                 <Link to="/profile" className="w-10 h-10 rounded-full bg-brand-accent/20 border border-brand-accent/30 flex items-center justify-center text-brand-accent overflow-hidden hover:border-brand-accent transition-all transform hover:scale-105">
@@ -155,7 +155,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   )}
                 </Link>
               </div>
-            ) : null}
+            ) : (
+              <div className="hidden md:flex items-center gap-4 border-l border-white/10 pl-6">
+                <Link to="/auth" className="flex items-center gap-2 text-brand-metallic hover:text-brand-accent transition-colors">
+                  <User size={18} />
+                  <span className="text-[10px] uppercase font-bold tracking-widest mt-0.5">Login / Sign Up</span>
+                </Link>
+              </div>
+            )}
 
             <button 
               className="md:hidden text-brand-metallic hover:text-white transition-colors"
@@ -211,7 +218,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                    Sign Out
                  </button>
                </div>
-            ) : null}
+            ) : (
+              <Link
+                to="/auth"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-4 text-brand-metallic hover:text-brand-accent uppercase font-bold tracking-widest text-lg"
+              >
+                <User size={24} />
+                Login / Sign Up
+              </Link>
+            )}
 
             <div className="pb-32"></div>
           </div>
