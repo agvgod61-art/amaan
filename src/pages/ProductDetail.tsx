@@ -60,7 +60,6 @@ function ProductDetail() {
   }, [id]);
 
   const [activeImage, setActiveImage] = useState(0);
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"description" | "details" | "reviews">("description");
@@ -282,26 +281,7 @@ function ProductDetail() {
 
   useEffect(() => {
     if (!product) return;
-    const availableColors = product.colors && product.colors.length > 0 ? product.colors : 
-      (product.type === "Full-face" || product.name.toLowerCase().includes("helmet")) ? [
-        { name: product.color || "Matte Black", hex: "#111827", image: product.image },
-        { name: "Pearl Gloss White", hex: "#F3F4F6", image: product.image },
-        { name: "Stealth Grey", hex: "#4B5563", image: product.image },
-        { name: "Carbon Crimson", hex: "#BE123C", image: product.image }
-      ] : 
-      product.type === "Motorcycle" ? [
-        { name: "Kawasaki Racing Green", hex: "#15803D", image: product.image },
-        { name: "Midnight Stealth Edition", hex: "#1A1A1A", image: product.image },
-        { name: "Firecracker Red", hex: "#B91C1C", image: product.image }
-      ] : 
-      product.color ? [
-        { name: product.color, hex: "#10B981", image: product.image }
-      ] : [];
-
-    if (availableColors.length > 0 && !selectedColor) {
-      setSelectedColor(availableColors[0].name);
-    }
-  }, [product, selectedColor]);
+  }, [product]);
 
   if (loading) {
     return (
@@ -340,7 +320,7 @@ function ProductDetail() {
     }
     const finalSize = selectedSize || 'Default';
     setIsAdding(true);
-    addToCart(product, finalSize, quantity, selectedColor || undefined);
+    addToCart(product, finalSize, quantity);
     setCartFeedback(`${product.name} added to cart!`);
     setTimeout(() => {
       setIsAdding(false);
@@ -356,7 +336,7 @@ function ProductDetail() {
       return;
     }
     const finalSize = selectedSize || 'Default';
-    buyNow(product, finalSize, quantity, selectedColor || undefined);
+    buyNow(product, finalSize, quantity);
     navigate("/checkout");
   };
 
@@ -384,37 +364,10 @@ function ProductDetail() {
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) 
     : 0;
 
-  const availableColors = product.colors && product.colors.length > 0 ? product.colors : 
-    (product.type === "Full-face" || product.name.toLowerCase().includes("helmet")) ? [
-      { name: product.color || "Matte Black", hex: "#111827", image: product.image },
-      { name: "Pearl Gloss White", hex: "#F3F4F6", image: product.image },
-      { name: "Stealth Grey", hex: "#4B5563", image: product.image },
-      { name: "Carbon Crimson", hex: "#BE123C", image: product.image }
-    ] : 
-    product.type === "Motorcycle" ? [
-      { name: "Kawasaki Racing Green", hex: "#15803D", image: product.image },
-      { name: "Midnight Stealth Edition", hex: "#1A1A1A", image: product.image },
-      { name: "Firecracker Red", hex: "#B91C1C", image: product.image }
-    ] : 
-    product.color ? [
-      { name: product.color, hex: "#10B981", image: product.image }
-    ] : [];
-
-  const activeColor = availableColors.find(c => c.name === selectedColor);
-
-  const displayImages = (product.images || [product.image]).map((img, idx) => 
-    idx === 0 && activeColor && activeColor.image !== product.image ? activeColor.image : img
-  );
-  const displayImage = activeColor && activeImage === 0 ? activeColor.image : (product.images && product.images[activeImage]) || product.image;
+  const displayImages = product.images || [product.image];
+  const displayImage = (product.images && product.images[activeImage]) || product.image;
 
   let hueRotationClass = "";
-  if (activeColor && activeColor.image === product.image) {
-    if (activeColor.name === "Pearl Gloss White") hueRotationClass="brightness-125 saturate-50 contrast-125 hover:brightness-125 duration-300";
-    else if (activeColor.name === "Stealth Grey") hueRotationClass="grayscale opacity-80 contrast-105 hover:grayscale duration-300";
-    else if (activeColor.name === "Carbon Crimson" || activeColor.name === "Firecracker Red") hueRotationClass="hue-rotate-[145deg] saturate-[1.3] contrast-105 duration-300";
-    else if (activeColor.name === "Kawasaki Racing Green") hueRotationClass="hue-rotate-[45deg] saturate-125 duration-300";
-    else if (activeColor.name === "Midnight Stealth Edition" || activeColor.name === "Matte Black") hueRotationClass="brightness-75 contrast-110 duration-300";
-  }
 
   return (
     <div className="pt-8 pb-24 px-6 max-w-7xl mx-auto w-full relative">
@@ -1044,41 +997,6 @@ function ProductDetail() {
 
           {/* Configuration (Color / Size) */}
           <div className="mb-8 space-y-6">
-
-            {availableColors.length > 0 && (
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-widest text-white mb-3 flex items-center justify-between">
-                  <span>Select Configuration</span>
-                  {selectedColor && <span className="text-brand-accent text-[10px]">{selectedColor}</span>}
-                </h3>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  {availableColors.map((color) => (
-                    <button
-                      key={color.name}
-                      onClick={() => {
-                        setSelectedColor(color.name);
-                        setActiveImage(0); // reset view
-                      }}
-                      className={cn(
-                        "flex items-center gap-3 p-3 border transition-all text-left group",
-                        selectedColor === color.name
-                          ? "bg-white/10 border-white text-white"
-                          : "border-white/10 text-brand-metallic hover:border-white/40 hover:text-white"
-                      )}
-                    >
-                      <div 
-                        className="w-4 h-4 rounded-full border border-white/20 shadow-inner flex-shrink-0" 
-                        style={{ backgroundColor: color.hex }}
-                        title={color.name}
-                      />
-                      <span className="text-[10px] font-bold uppercase tracking-wider truncate leading-tight mt-0.5">
-                        {color.name}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {!(product.name.toLowerCase().includes("helmet mechanism")) && (
               <div>
