@@ -120,7 +120,7 @@ export default function ModernHome() {
                   <Link to="/shop" className="bg-[#e94560] text-white px-10 py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-[#c73e54] transition-all transform hover:-translate-y-1 shadow-xl shadow-[#e94560]/20 flex items-center gap-3 group">
                      Shop Collection <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                   </Link>
-                  <a href="https://wa.me/91" className="bg-[#25D366] text-white px-10 py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:scale-105 transition-all flex items-center gap-3">
+                  <a href="https://wa.me/918292908076" target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white px-10 py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:scale-105 transition-all flex items-center gap-3">
                      WhatApp Order
                   </a>
                </div>

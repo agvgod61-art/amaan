@@ -16,6 +16,19 @@ export default function ImageUpload({ onUploadComplete, label = "Upload Image", 
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(initialUrl || null);
+  const [pasteUrl, setPasteUrl] = useState<string>('');
+
+  const handleUrlSubmit = (e?: React.FormEvent | React.MouseEvent | React.KeyboardEvent) => {
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
+    if (pasteUrl.trim()) {
+      onUploadComplete(pasteUrl.trim());
+      setPreview(pasteUrl.trim());
+      setSuccess(true);
+      setError(null);
+    }
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -144,6 +157,34 @@ export default function ImageUpload({ onUploadComplete, label = "Upload Image", 
             </div>
           </div>
         </div>
+      </div>
+      
+      <div className="mt-2 text-center text-[10px] text-brand-metallic uppercase font-bold tracking-widest">
+        OR
+      </div>
+      
+      <div className="flex gap-2">
+        <input
+          type="url"
+          placeholder="Paste Imgur, Unsplash, or Web URL..."
+          value={pasteUrl}
+          onChange={(e) => setPasteUrl(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleUrlSubmit(e);
+            }
+          }}
+          className="flex-grow bg-black border border-white/10 p-2 text-white text-[10px] font-mono focus:border-brand-accent outline-none transition-colors placeholder:text-white/20"
+        />
+        <button
+          type="button"
+          onClick={handleUrlSubmit}
+          disabled={!pasteUrl.trim()}
+          className="bg-white/5 border border-white/10 px-4 py-2 text-[10px] uppercase font-bold tracking-widest hover:bg-white/10 hover:text-brand-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Add
+        </button>
       </div>
     </div>
   );
