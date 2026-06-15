@@ -7,7 +7,7 @@ import { cn } from "../lib/utils";
 import { useWishlist } from "../context/WishlistContext";
 import { useCart } from "../context/CartContext";
 import { db, isQuotaError } from "../lib/firebase";
-import { collection, getDocs, query, limit, startAfter, orderBy, where, getDocsFromCache } from "firebase/firestore";
+import { collection, getDocs, query, limit, startAfter, orderBy, where, getDocsFromCache } from "../lib/firebase";
 
 // Separate Product Card Component for Hover Spin Logic
 const ProductCard = ({ 

@@ -5,16 +5,17 @@ import { Helmet } from "react-helmet-async";
 import { ShieldCheck, Star, Clock, ArrowLeft, CheckCircle2, ChevronRight, ChevronLeft, Share, Heart, Truck, Lock, Award, X as CloseIcon, Ruler, Info, Instagram, Facebook, MessageCircle, Copy, Check, Grid, Image as ImageIcon, ArrowRight, RefreshCw, Play, Loader2, Twitter, Send, Linkedin, MoreHorizontal, ShoppingBag } from "lucide-react";
 import { cn } from "../lib/utils";
 import { getEmbedUrl } from "../lib/mediaUtils";
-import { motion, AnimatePresence, useMotionValue, useTransform } from "motion/react";
+import { motion, AnimatePresence, useMotionValue, useTransform, useAnimation } from "motion/react";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 import { useAuth } from "../context/AuthContext";
 import { db, handleFirestoreError, OperationType, isQuotaError } from "../lib/firebase";
-import { doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, limit } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, limit } from "../lib/firebase";
 
 import ErrorBoundary from "../components/ErrorBoundary";
 
 function ProductDetail() {
+  const controls = useAnimation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -141,7 +142,7 @@ function ProductDetail() {
     try {
       const reviewData: any = {
         productId: id,
-        userId: user?.uid || "guest",
+        userId: user?.id || "guest",
         userName: newReview.name,
         rating: newReview.rating,
         comment: newReview.text,
@@ -313,12 +314,23 @@ function ProductDetail() {
     }, 2500);
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!selectedSize && !product.name.toLowerCase().includes("helmet mechanism")) {
       alert("Please select a size first.");
       return;
     }
     const finalSize = selectedSize || 'Default';
+    
+    // Animate the ghost image
+    controls.set({ opacity: 0.8, x: 0, y: 0, scale: 1 });
+    await controls.start({
+        x: 300,
+        y: -200,
+        scale: 0.2,
+        opacity: 0,
+        transition: { duration: 0.6, ease: "easeInOut" },
+    });
+    
     setIsAdding(true);
     addToCart(product, finalSize, quantity);
     setCartFeedback(`${product.name} added to cart!`);
@@ -860,6 +872,15 @@ function ProductDetail() {
                       referrerPolicy="no-referrer"
                     />
                   </AnimatePresence>
+                  
+                  {/* Ghost image for add to cart animation */}
+                  <motion.img
+                    animate={controls}
+                    initial={{ opacity: 0, x: 0, y: 0, scale: 1 }}
+                    src={displayImage}
+                    alt=""
+                    className="absolute inset-0 m-auto max-w-[85%] max-h-[85%] object-contain pointer-events-none z-50 drop-shadow-[0_0_30px_rgba(100,255,100,0.4)]"
+                  />
                 </motion.div>
               </div>
             </>
@@ -1009,19 +1030,19 @@ function ProductDetail() {
                     <Ruler size={10} /> Size Guide
                   </button>
                 </div>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="flex flex-wrap gap-2">
                   {(product.sizes && product.sizes.length > 0 ? product.sizes : 
                     (product.name.toLowerCase().includes("anti fog") || product.name.toLowerCase().includes("antifog")) 
                       ? ['30ml', '60ml', '120ml'] 
-                      : ['S', 'M', 'L', 'XL']
+                      : ['S', 'M', 'L', 'XL', 'XXL']
                   ).map(size => (
                     <button 
                       key={size} 
                       onClick={() => setSelectedSize(size)}
                       className={cn(
-                        "py-3 text-sm font-bold uppercase tracking-wider transition-all border",
+                        "flex-1 min-w-[60px] py-3 text-sm font-bold uppercase tracking-wider transition-all duration-300 border relative",
                         selectedSize === size 
-                          ? "bg-white text-brand-black border-white" 
+                          ? "bg-white text-brand-black border-white scale-105 shadow-[0_0_20px_rgba(255,255,255,0.6)] z-10" 
                           : "border-white/20 text-brand-metallic hover:border-white hover:text-white"
                       )}
                     >

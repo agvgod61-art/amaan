@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { galleryImages as staticImages, GalleryImage } from "../data/gallery";
 import { Instagram, Fullscreen, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { db, isQuotaError } from "../lib/firebase";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { supabase } from '../lib/supabase';
 import { getEmbedUrl, isVideoUrl } from "../lib/mediaUtils";
 
 const Gallery = () => {
@@ -18,32 +17,27 @@ const Gallery = () => {
     const fetchGallery = async () => {
       setLoading(true);
       try {
-        const q = query(collection(db, "gallery"), orderBy("createdAt", "desc"));
-        const snap = await getDocs(q);
+        const { data, error } = await supabase.from('gallery').select('*').order('createdAt', { ascending: false });
+        if (error) throw error;
         
         const isInvalidUrl = (url: string) => !url || !(url.startsWith('http') || url.startsWith('data:image'));
         
-        const fetched = snap.docs
+        const fetched = (data || [])
           .map(doc => {
-            const data = doc.data();
             return {
               id: doc.id,
-              url: data.image,
-              model: data.title,
-              description: data.category,
-              type: data.type || "image"
+              url: doc.image,
+              model: doc.title,
+              description: doc.category,
+              type: doc.type || "image"
             } as GalleryImage;
           })
           .filter(img => !isInvalidUrl(img.url));
           
         setDynamicImages(fetched);
       } catch (err) {
-        if (isQuotaError(err)) {
-          console.warn("Firestore quota exceeded. Falling back to static gallery images.");
-          setDynamicImages([]); // Will cause allImages to use staticImages
-        } else {
-          console.error("Gallery fetch failed", err);
-        }
+        console.error("Gallery fetch failed", err);
+        setDynamicImages([]); 
       } finally {
         setLoading(false);
       }

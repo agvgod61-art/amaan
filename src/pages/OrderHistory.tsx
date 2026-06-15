@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Package, Clock, ShieldCheck, Search, ChevronRight, Loader2, AlertCircle, ShoppingBag, ChevronDown, ChevronUp, MapPin, CreditCard } from "lucide-react";
 import { db, handleFirestoreError, OperationType, isQuotaError } from "../lib/firebase";
-import { collection, query, where, getDocs, orderBy, limit, getDocsFromCache } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy, limit, getDocsFromCache } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 import { cn } from "../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
@@ -36,8 +36,8 @@ export default function OrderHistory() {
         // Query by email to find all orders associated with this rider
         const q = query(
           collection(db, ordersPath),
-          where("userEmail", "==", user.email),
-          orderBy("createdAt", "desc"),
+          where("user_email", "==", user.email),
+          orderBy("created_at", "desc"),
           limit(20)
         );
         
@@ -54,8 +54,8 @@ export default function OrderHistory() {
           try {
             const q = query(
               collection(db, ordersPath),
-              where("userEmail", "==", user.email),
-              orderBy("createdAt", "desc"),
+              where("user_email", "==", user.email),
+              orderBy("created_at", "desc"),
               limit(20)
             );
             const cacheSnap = await getDocsFromCache(q);
@@ -78,7 +78,7 @@ export default function OrderHistory() {
           // Fallback query if index isn't ready
           const qSimple = query(
             collection(db, ordersPath),
-            where("userEmail", "==", user.email)
+            where("user_email", "==", user.email)
           );
           const qSnapSimple = await getDocs(qSimple);
           setOrders(qSnapSimple.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -206,9 +206,9 @@ export default function OrderHistory() {
                            )}>{order.id}</span>
                            <div className="flex items-center gap-2 text-[9px] text-brand-metallic uppercase font-bold tracking-widest">
                               <Clock size={12} />
-                              {order.createdAt?.seconds 
-                                ? new Date(order.createdAt.seconds * 1000).toLocaleDateString()
-                                : new Date(order.createdAt).toLocaleDateString()
+                              {order.created_at?.seconds 
+                                ? new Date(order.created_at.seconds * 1000).toLocaleDateString()
+                                : new Date(order.created_at).toLocaleDateString()
                               }
                            </div>
                         </div>
@@ -224,7 +224,7 @@ export default function OrderHistory() {
                              {order.status}
                            </div>
                            <div className="px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-full border border-white/10 bg-white/5 text-brand-metallic">
-                             {order.paymentMethod}
+                             {order.payment_method}
                            </div>
                         </div>
                       </div>
@@ -232,7 +232,7 @@ export default function OrderHistory() {
                       <div className="flex flex-row items-center justify-between w-full md:w-auto gap-8">
                         <div className="text-left md:text-right">
                           <p className="text-[10px] text-brand-metallic uppercase tracking-widest mb-1">Total Amount</p>
-                          <p className="text-2xl font-display font-bold">₹{order.totalAmount.toLocaleString()}</p>
+                          <p className="text-2xl font-display font-bold">₹{order.total_amount.toLocaleString()}</p>
                         </div>
                         <div className="bg-white/5 p-2 rounded-sm text-brand-metallic group-hover:text-brand-accent transition-colors">
                           {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
@@ -284,14 +284,14 @@ export default function OrderHistory() {
                                     <MapPin size={16} className="text-brand-accent mt-1" />
                                     <div>
                                       <p className="text-[9px] text-brand-metallic uppercase tracking-widest font-bold mb-1">Destination Address</p>
-                                      <p className="text-sm text-white leading-relaxed">{order.shippingInfo?.address}, {order.shippingInfo?.pincode}</p>
+                                      <p className="text-sm text-white leading-relaxed">{order.shipping_info?.address}, {order.shipping_info?.pincode}</p>
                                     </div>
                                   </div>
                                   <div className="flex items-start gap-4">
                                     <CreditCard size={16} className="text-brand-accent mt-1" />
                                     <div>
                                       <p className="text-[9px] text-brand-metallic uppercase tracking-widest font-bold mb-1">Payment Strategy</p>
-                                      <p className="text-sm text-white">{order.paymentMethod}</p>
+                                      <p className="text-sm text-white">{order.payment_method}</p>
                                     </div>
                                   </div>
                                   <div className="pt-4 flex gap-4">

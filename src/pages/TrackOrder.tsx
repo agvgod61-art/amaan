@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Search, Loader2, Package, Clock, ShieldCheck, AlertCircle, MapPin, CreditCard } from "lucide-react";
 import { db, isQuotaError } from "../lib/firebase";
-import { doc, getDoc, getDocFromCache } from "firebase/firestore";
+import { doc, getDoc, getDocFromCache } from "../lib/firebase";
 import { cn } from "../lib/utils";
 
 export default function TrackOrder() {
@@ -145,7 +145,7 @@ export default function TrackOrder() {
                       </div>
                       <div>
                         <p className="text-[9px] text-brand-metallic uppercase tracking-widest font-bold mb-1">Deployment Destination</p>
-                        <p className="text-sm text-white leading-relaxed">{order.shippingInfo?.address}, {order.shippingInfo?.pincode}</p>
+                        <p className="text-sm text-white leading-relaxed">{order.shipping_info?.address}, {order.shipping_info?.pincode}</p>
                       </div>
                     </div>
                     
@@ -155,7 +155,7 @@ export default function TrackOrder() {
                       </div>
                       <div>
                         <p className="text-[9px] text-brand-metallic uppercase tracking-widest font-bold mb-1">Transaction Method</p>
-                        <p className="text-sm text-white font-bold">{order.paymentMethod}</p>
+                        <p className="text-sm text-white font-bold">{order.payment_method}</p>
                       </div>
                     </div>
                   </div>
@@ -168,9 +168,9 @@ export default function TrackOrder() {
                       <div>
                         <p className="text-[9px] text-brand-metallic uppercase tracking-widest font-bold mb-1">Mission Log Arrival</p>
                         <p className="text-sm text-white">
-                          {order.createdAt?.seconds 
-                            ? new Date(order.createdAt.seconds * 1000).toLocaleString()
-                            : new Date(order.createdAt).toLocaleString()
+                          {order.created_at?.seconds 
+                            ? new Date(order.created_at.seconds * 1000).toLocaleString()
+                            : new Date(order.created_at).toLocaleString()
                           }
                         </p>
                       </div>
@@ -217,7 +217,7 @@ export default function TrackOrder() {
               <div className="mt-8 pt-8 border-t border-white/10 flex justify-between items-end">
                 <div>
                    <p className="text-[9px] text-brand-metallic uppercase tracking-widest font-bold mb-1">Total Payload Value</p>
-                   <p className="text-3xl font-display font-bold text-white">₹{order.totalAmount.toLocaleString()}</p>
+                   <p className="text-3xl font-display font-bold text-white">₹{order.total_amount.toLocaleString()}</p>
                 </div>
                 <button className="text-[10px] text-brand-accent font-bold uppercase tracking-widest border border-brand-accent/20 px-6 py-3 hover:bg-brand-accent hover:text-white transition-all">
                   Full Logistics Report

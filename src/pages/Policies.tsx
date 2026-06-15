@@ -67,31 +67,8 @@ export default function Policies() {
             </ul>
           </PolicySection>
 
-          {/* Section 2: Returns */}
-          <PolicySection icon={RotateCcw} title="2. Common Return & Exchange Rules">
-            <p>Because helmets are life-saving equipment, our return windows are strictly enforced to guarantee that every customer receives a brand-new, untampered product.</p>
-            <ul className="space-y-4">
-              <li className="flex gap-3">
-                <div className="w-1.5 h-1.5 bg-brand-accent rounded-full mt-2 shrink-0"></div>
-                <span><strong>The "Unused" Rule:</strong> To be eligible for a return or exchange, the helmet must be completely unused and unworn (other than 15-20 min fit testing at home).</span>
-              </li>
-              <li className="flex gap-3">
-                <div className="w-1.5 h-1.5 bg-brand-accent rounded-full mt-2 shrink-0"></div>
-                <span><strong>Tags & Protective Film:</strong> Do not remove tags or the protective plastic film on the visor until you are 100% sure the fit is perfect. Visor film removal immediately voids the return.</span>
-              </li>
-              <li className="flex gap-3">
-                <div className="w-1.5 h-1.5 bg-brand-accent rounded-full mt-2 shrink-0"></div>
-                <span><strong>Original Packaging:</strong> Returns must be in the original branded box. Do not stick shipping labels directly on the manufacturer's packaging; use a secondary shipping box.</span>
-              </li>
-              <li className="flex gap-3">
-                <div className="w-1.5 h-1.5 bg-brand-accent rounded-full mt-2 shrink-0"></div>
-                <span><strong>Timeframes:</strong> Return windows range from 7 to 30 days. Notify us of any size mismatches within 48 hours of delivery for the fastest resolution.</span>
-              </li>
-            </ul>
-          </PolicySection>
-
-          {/* Section 3: Non-Returnable */}
-          <PolicySection icon={AlertTriangle} title="3. Non-Returnable Scenarios" className="border-red-500/20">
+          {/* Section 2: Non-Returnable */}
+          <PolicySection icon={AlertTriangle} title="2. Non-Returnable Scenarios" className="border-red-500/20">
             <p className="text-red-400/80 font-bold uppercase text-[10px] tracking-widest mb-2">Notice: The following items cannot be returned</p>
             <ul className="space-y-3">
               <li className="flex gap-3">

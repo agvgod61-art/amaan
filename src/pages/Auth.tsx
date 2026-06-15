@@ -2,14 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertCircle, Loader2, Shield, Mail, Lock, Chrome } from 'lucide-react';
-import { auth } from '../lib/firebase';
-import { 
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signOut
-} from 'firebase/auth';
+import { supabase } from '../supabaseClient';
 
 export default function Auth() {
   const [isSignIn, setIsSignIn] = useState(true);
@@ -25,9 +18,11 @@ export default function Auth() {
     setSuccessMsg(null);
     setLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      navigate('/');
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google'
+      });
+      if (error) throw error;
+      // Note: OAuth redirects, so no navigate required here usually
     } catch (err: any) {
       setError(err.message || 'An error occurred during Google Sign In.');
       setLoading(false);
@@ -42,17 +37,22 @@ export default function Auth() {
 
     try {
       if (isSignIn) {
-        await signInWithEmailAndPassword(auth, email, password);
-        navigate('/');
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        if (data.session) {
+          navigate('/');
+        }
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
-        // Firebase logs the user in immediately on signup.
-        // If we want to verify email, we can sign them out and show a message.
-        await signOut(auth);
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
         
-        setIsSignIn(true);
-        setPassword('');
-        setSuccessMsg("Account created successfully. Please sign in or check your email to confirm.");
+        if (!data.session) {
+          setSuccessMsg("Check your email and confirm your account before logging in.");
+          setIsSignIn(true);
+          setPassword('');
+        } else {
+          navigate('/');
+        }
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred during authentication.');

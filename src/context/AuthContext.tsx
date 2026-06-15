@@ -1,14 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  User, 
-  onAuthStateChanged, 
-  signOut,
-  sendPasswordResetEmail,
-  updateEmail,
-  updateProfile
-} from 'firebase/auth';
-import { auth, db } from '../lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { supabase } from '../lib/supabase';
+import { User } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
@@ -28,50 +20,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          const [blockedDoc, incidentDoc] = await Promise.all([
-            getDoc(doc(db, "blocked_users", firebaseUser.uid)),
-            getDoc(doc(db, "security_incidents", firebaseUser.uid))
-          ]);
-          
-          if (blockedDoc.exists() || incidentDoc.exists()) {
-            setIsBlocked(true);
-            await signOut(auth);
-            setUser(null);
-          } else {
-            setIsBlocked(false);
-            setUser(firebaseUser);
-          }
-        } catch (err) {
-          // If we can't check block status, assume safe but maybe log
-          setUser(firebaseUser);
-        }
+    // Check active sessions and sets the user
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        checkUserStatus(session.user);
       } else {
         setUser(null);
         setIsBlocked(false);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return unsubscribe;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (session?.user) {
+          checkUserStatus(session.user);
+        } else {
+          setUser(null);
+          setIsBlocked(false);
+          setLoading(false);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const logout = () => signOut(auth);
+  const checkUserStatus = async (supabaseUser: User) => {
+    try {
+      const [blockedRes, incidentRes] = await Promise.all([
+        supabase.from('blocked_users').select('*').eq('id', supabaseUser.id).single(),
+        supabase.from('security_incidents').select('*').eq('id', supabaseUser.id).single()
+      ]);
+      
+      if (blockedRes.data || incidentRes.data) {
+        setIsBlocked(true);
+        await supabase.auth.signOut();
+        setUser(null);
+      } else {
+        setIsBlocked(false);
+        setUser(supabaseUser);
+      }
+    } catch (err) {
+      setUser(supabaseUser);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
+  };
   
-  const resetPassword = (email: string) => sendPasswordResetEmail(auth, email);
+  const resetPassword = async (email: string) => {
+    await supabase.auth.resetPasswordForEmail(email);
+  };
 
   const changeEmail = async (newEmail: string) => {
-    if (!auth.currentUser) throw new Error("No user logged in");
-    await updateEmail(auth.currentUser, newEmail);
+    await supabase.auth.updateUser({ email: newEmail });
   };
 
   const updateName = async (newName: string) => {
-    if (!auth.currentUser) throw new Error("No user logged in");
-    await updateProfile(auth.currentUser, { displayName: newName });
-    // Force a state refresh
-    setUser({ ...auth.currentUser });
+    const { data: { user: updatedUser } } = await supabase.auth.updateUser({
+      data: { displayName: newName }
+    });
+    if (updatedUser) setUser(updatedUser);
   };
 
   return (
@@ -88,4 +101,5 @@ export function useAuth() {
   }
   return context;
 }
+
 

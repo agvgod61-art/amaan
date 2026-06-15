@@ -5,7 +5,7 @@ import { cn } from "../lib/utils";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp } from "../lib/firebase";
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -119,7 +119,7 @@ export default function Checkout() {
       
       await addDoc(collection(db, "orders"), {
         order_id: newOrderId,
-        user_id: user?.uid || 'guest',
+        user_id: user?.id || 'guest',
         user_email: user?.email || null,
         items: cleanCart,
         total_amount: totalPrice,

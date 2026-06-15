@@ -7,7 +7,7 @@ import { useWishlist } from "../context/WishlistContext";
 import { useCart } from "../context/CartContext";
 import { cn } from "../lib/utils";
 import { db, isQuotaError } from "../lib/firebase";
-import { collection, getDocs, query, limit, doc, getDoc, where, getDocsFromCache, getDocFromCache } from "firebase/firestore";
+import { collection, getDocs, query, limit, doc, getDoc, where, getDocsFromCache, getDocFromCache } from "../lib/firebase";
 import { useSettings } from "../context/SettingsContext";
 
 import { Edit2, X as CloseIcon } from "lucide-react";

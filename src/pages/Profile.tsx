@@ -29,7 +29,7 @@ export default function Profile() {
       }
       try {
         const { db } = await import("../lib/firebase");
-        const { doc, getDoc } = await import("firebase/firestore");
+        const { doc, getDoc } = await import("../lib/firebase");
         const adminDoc = await getDoc(doc(db, "admins", user.email.toLowerCase()));
         setIsAdmin(adminDoc.exists());
       } catch (err) {

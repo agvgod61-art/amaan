@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { db, handleFirestoreError, OperationType, isQuotaError, storage } from "../lib/firebase";
-import { doc, setDoc, collection, serverTimestamp, getDocs, updateDoc, deleteDoc, query, orderBy, getDoc, limit, getDocsFromCache } from "firebase/firestore";
-import { ref, deleteObject } from "firebase/storage";
+import { doc, setDoc, collection, serverTimestamp, getDocs, updateDoc, deleteDoc, query, orderBy, getDoc, limit, getDocsFromCache } from "../lib/firebase";
+import { ref, deleteObject } from "../lib/firebase";
 import { Loader2, Database, AlertCircle, ShoppingBag, Package, Plus, Trash2, Edit2, X, UserPlus, ShieldCheck, RefreshCw, LayoutGrid, Settings, Shield, LineChart, FileText, PlayCircle, PackageCheck, CheckCircle2, XCircle, MessageCircle, Star, Maximize2, Upload, Link as LinkIcon } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { products as initialProducts } from "../data/products";
@@ -461,7 +461,7 @@ export default function Admin() {
   const fetchOrders = async (silent = false) => {
     if (!silent) setStatus("loading");
     try {
-      const q = query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(50));
+      const q = query(collection(db, "orders"), orderBy("created_at", "desc"), limit(50));
       const snap = await getDocs(q);
       const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setOrders(data);
@@ -472,7 +472,7 @@ export default function Admin() {
         setMessage("QUOTA LIMIT REACHED: LOADING LOCAL ORDER ARCHIVE.");
         // Try cache fallback
         try {
-          const q = query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(50));
+          const q = query(collection(db, "orders"), orderBy("created_at", "desc"), limit(50));
           const cacheSnap = await getDocsFromCache(q);
           if (!cacheSnap.empty) {
             setOrders(cacheSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -1396,10 +1396,10 @@ export default function Admin() {
                       <tr key={order.id} className="text-sm font-mono hover:bg-white/5 transition-colors group">
                         <td className="py-4 text-brand-accent font-bold">{order.id}</td>
                         <td className="py-4">
-                          <p className="font-sans font-bold text-white uppercase text-xs">{order.shippingInfo?.name}</p>
-                          <p className="text-[10px] text-brand-metallic uppercase">{order.userEmail || "Guest Order"}</p>
+                          <p className="font-sans font-bold text-white uppercase text-xs">{order.shipping_info?.name}</p>
+                          <p className="text-[10px] text-brand-metallic uppercase">{order.user_email || "Guest Order"}</p>
                         </td>
-                        <td className="py-4 text-white">₹{order.totalAmount.toLocaleString()}</td>
+                        <td className="py-4 text-white">₹{order.total_amount?.toLocaleString()}</td>
                         <td className="py-4 text-[10px]">
                           <span className={cn(
                             "px-2 py-1 rounded-sm uppercase font-bold",
@@ -1412,7 +1412,7 @@ export default function Admin() {
                         </td>
                         <td className="py-4 text-brand-metallic text-xs">
                           <div className="flex items-center justify-between">
-                            {order.createdAt}
+                            {order.created_at}
                             <button 
                               onClick={() => handleDeleteOrder(order.id)}
                               className="opacity-0 group-hover:opacity-100 p-2 text-brand-metallic hover:text-red-500 transition-all ml-4"

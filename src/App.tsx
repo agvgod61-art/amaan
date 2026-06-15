@@ -42,14 +42,28 @@ import { HelmetProvider } from "react-helmet-async";
 import { Navigate } from "react-router-dom";
 import { useState } from "react";
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+import { supabase } from "./lib/supabase";
 
-  if (loading) {
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const [sessionState, setSessionState] = useState<{ checked: boolean, hasSession: boolean }>({ checked: false, hasSession: false });
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSessionState({ checked: true, hasSession: !!session });
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSessionState({ checked: true, hasSession: !!session });
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (!sessionState.checked) {
     return <div className="min-h-[50vh] flex items-center justify-center text-white text-xs uppercase tracking-widest animate-pulse">Loading...</div>;
   }
 
-  if (!user) {
+  if (!sessionState.hasSession) {
     return <Navigate to="/auth" replace />;
   }
 
