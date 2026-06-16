@@ -2,7 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
-export async function chatWithGemini(message: string, history: { role: 'user' | 'model', parts: { text: string }[] }[], context: string) {
+export async function chatWithGemini(message: string, history: { role: 'user' | 'model', parts: { text: string }[] }[], context: string, siteName: string = "AVG GOD") {
   try {
     const model = "gemini-3-flash-preview";
     
@@ -13,7 +13,7 @@ export async function chatWithGemini(message: string, history: { role: 'user' | 
         { role: 'user', parts: [{ text: `Context about the store (Products, Policies, Sizing): ${context}\n\nUser Question: ${message}` }] }
       ],
       config: {
-        systemInstruction: `You are a helpful customer support assistant for AVG GOD, a premium riding gear store.
+        systemInstruction: `You are a helpful customer support assistant for ${siteName}, a premium riding gear store.
         
 Your communication rules:
 1. MANDATORY: If a user asks for product recommendations, YOU MUST NOT suggest products immediately. Instead, you MUST first ask for their:

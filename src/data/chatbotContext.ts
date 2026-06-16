@@ -1,6 +1,6 @@
 import { products } from "./products";
 
-export const getStoreContext = () => {
+export const getStoreContext = (siteName: string = "AVG GOD") => {
   const productInfo = products.map(p => `- ${p.name}: ₹${p.price} (${p.type}) - ${p.description.substring(0, 100)}...`).join('\n');
   
   const policies = `
@@ -62,7 +62,7 @@ Finding the Best Product for You:
   `;
 
   return `
-Store Name: AVG GOD
+Store Name: ${siteName}
 Specialty: Premium Riding Gear (AGV, Shoei, Shark, Motorcycles, Accessories)
 
 Helpful Guides:

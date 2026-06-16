@@ -41,6 +41,7 @@ function ScrollToTop() {
 import { HelmetProvider } from "react-helmet-async";
 import { Navigate } from "react-router-dom";
 import { useState } from "react";
+import { useSettings } from "./context/SettingsContext";
 
 import { supabase } from "./lib/supabase";
 
@@ -64,6 +65,42 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!sessionState.hasSession) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function AccessControl({ children }: { children: React.ReactNode }) {
+  const { settings, loading } = useSettings();
+  const { user } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <div className="min-h-screen bg-brand-black flex items-center justify-center text-white text-xs uppercase tracking-widest animate-pulse">Initializing...</div>;
+  }
+
+  // Always allow access to admin and auth pages regardless of site access mode
+  if (location.pathname === "/admin" || location.pathname === "/auth") {
+    return <>{children}</>;
+  }
+
+  const SUPER_ADMINS = ["yamaan115@gmail.com", "avggod61@gmail.com", "agvgod61@gmail.com"];
+  const isSuperAdmin = user?.email && SUPER_ADMINS.includes(user.email.toLowerCase());
+
+  if (settings.siteAccess === "maintenance" && !isSuperAdmin) {
+    return (
+      <div className="min-h-screen bg-brand-black flex flex-col items-center justify-center p-6 text-center text-white">
+        <Shield size={64} className="text-brand-accent mb-8" />
+        <h1 className="text-4xl md:text-6xl font-display font-bold uppercase tracking-tighter mb-4 text-white">Under Maintenance</h1>
+        <p className="text-brand-metallic text-sm uppercase tracking-widest max-w-xl leading-relaxed">
+          {settings.siteName} is currently undergoing scheduled maintenance to improve your experience. Please check back later.
+        </p>
+      </div>
+    );
+  }
+
+  if (settings.siteAccess === "members" && !user) {
     return <Navigate to="/auth" replace />;
   }
 
@@ -101,25 +138,27 @@ export default function App() {
                   <Router>
                     <ScrollToTop />
                     <QuotaBanner />
-                    <Layout>
-                      <Routes>
-                        <Route path="/" element={<Home />} />
-                        <Route path="/shop" element={<Shop />} />
-                        <Route path="/product/:id" element={<ProductDetail />} />
-                        <Route path="/checkout" element={<Checkout />} />
-                        <Route path="/wishlist" element={<Wishlist />} />
-                        <Route path="/about" element={<About />} />
-                        <Route path="/contact" element={<Contact />} />
-                        <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-                        <Route path="/policies" element={<Policies />} />
-                        <Route path="/sizing" element={<SizingGuide />} />
-                        <Route path="/auth" element={<Auth />} />
-                        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                        <Route path="/order-history" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
-                        <Route path="/track" element={<TrackOrder />} />
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                    </Layout>
+                    <AccessControl>
+                      <Layout>
+                        <Routes>
+                          <Route path="/" element={<Home />} />
+                          <Route path="/shop" element={<Shop />} />
+                          <Route path="/product/:id" element={<ProductDetail />} />
+                          <Route path="/checkout" element={<Checkout />} />
+                          <Route path="/wishlist" element={<Wishlist />} />
+                          <Route path="/about" element={<About />} />
+                          <Route path="/contact" element={<Contact />} />
+                          <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+                          <Route path="/policies" element={<Policies />} />
+                          <Route path="/sizing" element={<SizingGuide />} />
+                          <Route path="/auth" element={<Auth />} />
+                          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                          <Route path="/order-history" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
+                          <Route path="/track" element={<TrackOrder />} />
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </Layout>
+                    </AccessControl>
                   </Router>
                 </CartProvider>
               </WishlistProvider>

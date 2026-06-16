@@ -13,9 +13,11 @@ import { db, handleFirestoreError, OperationType, isQuotaError } from "../lib/fi
 import { doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, limit } from "../lib/firebase";
 
 import ErrorBoundary from "../components/ErrorBoundary";
+import { useSettings } from "../context/SettingsContext";
 
 function ProductDetail() {
-  const controls = useAnimation();
+  const controls = useAnimation();  
+  const { settings } = useSettings();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -76,7 +78,7 @@ function ProductDetail() {
         return;
       }
       try {
-        if (user.email === "yamaan115@gmail.com") {
+        if (user.email === "yamaan115@gmail.com" || user.email === "avggod61@gmail.com" || user.email === "agvgod61@gmail.com") {
           setIsAdmin(true);
         } else {
           const adminDoc = await getDoc(doc(db, "admins", user.email.toLowerCase()));
@@ -184,7 +186,7 @@ function ProductDetail() {
   const [copied, setCopied] = useState(false);
 
   const shareUrl = window.location.href;
-  const shareText = `Check out this amazing helmet: ${product?.name} at AVG GOD!`;
+  const shareText = `Check out this amazing helmet: ${product?.name} at ${settings.siteName}!`;
 
   const handleShare = (platform: 'whatsapp' | 'facebook' | 'instagram' | 'twitter' | 'telegram' | 'linkedin' | 'copy' | 'native') => {
     switch (platform) {
@@ -384,7 +386,7 @@ function ProductDetail() {
   return (
     <div className="pt-8 pb-24 px-6 max-w-7xl mx-auto w-full relative">
       <Helmet>
-        <title>{product.name} | AVG GOD</title>
+        <title>{product.name} | {settings.siteName}</title>
         <meta name="description" content={product.description.substring(0, 160)} />
         <meta property="og:title" content={`${product.name} - Premium Riding Gear`} />
         <meta property="og:description" content={product.description.substring(0, 160)} />
@@ -982,8 +984,8 @@ function ProductDetail() {
                     : "text-green-500 border-green-500/20 bg-green-500/5"
                 )}>
                   {product.stock <= 5 
-                    ? (user?.email === "yamaan115@gmail.com" ? `ONLY ${product.stock} UNITS LEFT` : "LOW STOCK - ACT FAST") 
-                    : (user?.email === "yamaan115@gmail.com" ? `${product.stock} UNITS IN STOCK` : "IN STOCK & READY TO SHIP")}
+                    ? ((user?.email === "yamaan115@gmail.com" || user?.email === "avggod61@gmail.com" || user?.email === "agvgod61@gmail.com") ? `ONLY ${product.stock} UNITS LEFT` : "LOW STOCK - ACT FAST") 
+                    : ((user?.email === "yamaan115@gmail.com" || user?.email === "avggod61@gmail.com" || user?.email === "agvgod61@gmail.com") ? `${product.stock} UNITS IN STOCK` : "IN STOCK & READY TO SHIP")}
                 </span>
               ) : (
                 <span className="text-[9px] font-bold uppercase tracking-[0.2em] px-3 py-1 border text-red-500 border-red-500/20 bg-red-500/5 animate-pulse">

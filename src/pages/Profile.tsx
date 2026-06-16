@@ -23,7 +23,7 @@ export default function Profile() {
   useEffect(() => {
     const checkAdminStatus = async () => {
       if (!user?.email) return;
-      if (user.email === "yamaan115@gmail.com") {
+      if (user.email === "yamaan115@gmail.com" || user.email === "avggod61@gmail.com" || user.email === "agvgod61@gmail.com") {
         setIsAdmin(true);
         return;
       }

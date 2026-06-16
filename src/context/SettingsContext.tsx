@@ -4,6 +4,7 @@ import { doc, onSnapshot } from '../lib/firebase';
 
 interface SiteSettings {
   siteName: string;
+  logoImage?: string;
   heroTitle: string;
   heroSubtitle: string;
   heroImage: string;
@@ -11,7 +12,9 @@ interface SiteSettings {
   contactEmail: string;
   contactPhone: string;
   whatsappNumber: string;
+  address?: string;
   footerText: string;
+  siteAccess?: "public" | "members" | "maintenance";
 }
 
 interface SettingsContextType {
@@ -21,6 +24,7 @@ interface SettingsContextType {
 
 const defaultSettings: SiteSettings = {
   siteName: "AVG GOD",
+  logoImage: "",
   heroTitle: "Premium Riding Equipment",
   heroSubtitle: "Engineered for Performance. Built for Safety.",
   heroImage: "https://images.unsplash.com/photo-1558981403-c5f91cb9c231?auto=format&fit=crop&q=80",
@@ -28,7 +32,9 @@ const defaultSettings: SiteSettings = {
   contactEmail: "agvgod@gmail.com",
   contactPhone: "+91 91522 45837",
   whatsappNumber: "919152245837",
-  footerText: "© 2024 AVG GOD. ALL RIGHTS RESERVED."
+  address: "Ranchi, Jharkhand, India",
+  footerText: "© 2024 AVG GOD. ALL RIGHTS RESERVED.",
+  siteAccess: "public"
 };
 
 const SettingsContext = createContext<SettingsContextType>({
@@ -47,17 +53,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (docSnap.exists()) {
           const data = docSnap.data() as SiteSettings;
           
-          // Auto-fix stale database fields (override 'Rider's Hub' defaults to 'AVG GOD')
-          if (data.siteName === "Rider's Hub" || data.siteName === "Motogp Helmet Ranchi") {
-            data.siteName = "AVG GOD";
-          }
-          if (data.contactEmail === "contact@ridershub.com") {
-            data.contactEmail = "agvgod@gmail.com";
-          }
-          if (data.footerText && data.footerText.toUpperCase().includes("RIDERS HUB")) {
-            data.footerText = "© 2024 AVG GOD. ALL RIGHTS RESERVED.";
-          }
-
           setSettings({ ...defaultSettings, ...data });
           
           // Update CSS variable for theme color

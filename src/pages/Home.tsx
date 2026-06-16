@@ -140,7 +140,7 @@ export default function Home() {
           />
           <div className="absolute inset-0 bg-gradient-to-r from-brand-black via-brand-black/40 to-transparent" />
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-             <div className="text-[120px] font-display font-bold opacity-[0.02] uppercase tracking-tighter">AVG GOD</div>
+             <div className="text-[120px] font-display font-bold opacity-[0.02] uppercase tracking-tighter whitespace-nowrap overflow-hidden">{settings.siteName}</div>
           </div>
         </div>
         

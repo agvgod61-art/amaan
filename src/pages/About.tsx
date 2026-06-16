@@ -1,4 +1,8 @@
+import { useSettings } from "../context/SettingsContext";
+
 export default function About() {
+  const { settings } = useSettings();
+  
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
@@ -12,7 +16,7 @@ export default function About() {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-brand-black via-brand-black/80 to-transparent" />
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-             <div className="text-[120px] font-display font-bold opacity-[0.02] uppercase tracking-tighter">AVG GOD</div>
+             <div className="text-[120px] font-display font-bold opacity-[0.02] uppercase tracking-tighter whitespace-nowrap overflow-hidden">{settings.siteName}</div>
           </div>
         </div>
         
@@ -37,7 +41,7 @@ export default function About() {
           
           <div className="space-y-8 text-brand-metallic leading-relaxed prose prose-invert mx-auto">
             <p>
-              Motogp Helmet Ranchi (AVG GOD) was founded with a singular, uncompromising vision: to bring MotoGP precision to every rider. We don't believe in minimum requirements. When you're pushing the limits of physics on the circuit, "good enough" is precisely what gets you killed.
+              {settings.siteName} was founded with a singular, uncompromising vision: to bring MotoGP precision to every rider. We don't believe in minimum requirements. When you're pushing the limits of physics on the circuit, "good enough" is precisely what gets you killed.
             </p>
             <p>
               Our engineering team consists of MotoGP technical coordinators, aerospace structural engineers, and professional racers. Every shell shape is extensively modeled and wind-tunnel tested to eliminate buffeting and drag at speeds exceeding 350 km/h.

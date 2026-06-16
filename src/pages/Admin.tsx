@@ -10,7 +10,7 @@ import { cn } from "../lib/utils";
 import ImageUpload from "../components/ImageUpload";
 import { getEmbedUrl } from "../lib/mediaUtils";
 
-type AdminTab = "dashboard" | "orders" | "products" | "categories" | "admins" | "media" | "setup" | "site" | "reviews" | "security";
+type AdminTab = "dashboard" | "orders" | "products" | "categories" | "admins" | "media" | "setup" | "site" | "reviews" | "security" | "customers";
 
 export default function Admin() {
   const { user, loading: authLoading } = useAuth();
@@ -41,6 +41,7 @@ export default function Admin() {
   const [categories, setCategories] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [deletedHistory, setDeletedHistory] = useState<{id: string, name: string, time: string, price: number, type: string}[]>([]);
   const [adminList, setAdminList] = useState<any[]>([]);
@@ -110,8 +111,23 @@ export default function Admin() {
       }
       if (activeTab === "reviews" && reviews.length === 0) fetchReviews();
       if (activeTab === "security" && blockedUsers.length === 0) fetchBlockedUsers();
+      if (activeTab === "customers" && customers.length === 0) fetchCustomers();
     }
   }, [isAuthorized, activeTab]);
+
+  const fetchCustomers = async () => {
+    setStatus("loading");
+    try {
+      const q = query(collection(db, "customers"), orderBy("createdAt", "desc"), limit(50));
+      const snap = await getDocs(q);
+      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setCustomers(data);
+      setStatus("idle");
+    } catch (err) {
+      handleFirestoreError(err, OperationType.LIST, "customers");
+      setStatus("error");
+    }
+  };
 
   const fetchReviews = async () => {
     setStatus("loading");
@@ -542,17 +558,12 @@ export default function Admin() {
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.siteName === "Rider's Hub" || data.siteName === "Motogp Helmet Ranchi") {
-          data.siteName = "AVG GOD";
-        }
-        if (data.contactEmail === "contact@ridershub.com") {
-          data.contactEmail = "agvgod@gmail.com";
-        }
         setSiteSettings(data);
       } else {
         // Initialize default settings if they don't exist
         const defaults = {
           siteName: "AVG GOD",
+          logoImage: "",
           heroTitle: "Premium Riding Equipment",
           heroSubtitle: "Engineered for Performance. Built for Safety.",
           heroImage: "https://images.unsplash.com/photo-1558981403-c5f91cb9c231?auto=format&fit=crop&q=80",
@@ -1064,7 +1075,7 @@ export default function Admin() {
                 </button>
               </div>
             )}
-            {(["dashboard", "orders", "products", "categories", "reviews", "admins", "media", "site", "security", "setup"] as AdminTab[]).map(tab => (
+            {(["dashboard", "orders", "products", "categories", "reviews", "customers", "admins", "media", "site", "security", "setup"] as AdminTab[]).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -1078,6 +1089,7 @@ export default function Admin() {
                 {tab === "products" && <Package size={14} />}
                 {tab === "categories" && <LayoutGrid size={14} />}
                 {tab === "reviews" && <MessageCircle size={14} />}
+                {tab === "customers" && <UserPlus size={14} />}
                 {tab === "admins" && <Shield size={14} />}
                 {tab === "media" && <Upload size={14} />}
                 {tab === "site" && <Edit2 size={14} />}
@@ -2700,6 +2712,61 @@ export default function Admin() {
           </div>
         )}
 
+        {/* Customers Management */}
+        {activeTab === "customers" && (
+          <div className="space-y-12 animate-in fade-in zoom-in duration-300">
+            <div className="flex items-center justify-between border-b border-white/5 pb-4">
+              <h2 className="text-xl font-display font-bold uppercase tracking-widest text-white flex items-center gap-3">
+                <UserPlus className="text-brand-accent" size={24} />
+                Registered Customers Data
+              </h2>
+            </div>
+            
+            <div className="bg-brand-black/40 border border-white/5 overflow-hidden">
+              {customers.length === 0 ? (
+                <div className="p-8 text-center border-b border-white/5 last:border-0">
+                  <p className="text-brand-metallic text-sm uppercase tracking-widest font-mono">No customers found.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-white/5">
+                  {customers.map(customer => (
+                    <div key={customer.id} className="p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:bg-white/[0.02] transition-colors relative group">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center shrink-0 border border-white/5">
+                          <UserPlus className="text-brand-metallic" size={18} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-3">
+                            <h3 className="font-mono text-sm tracking-widest uppercase text-white truncate max-w-[200px] md:max-w-[300px]">
+                              {customer.email}
+                            </h3>
+                            <div className="px-2 py-0.5 border border-brand-accent/30 bg-brand-accent/10 flex items-center gap-1.5 shrink-0">
+                              <Shield size={10} className="text-brand-accent" />
+                              <span className="text-[9px] text-brand-accent font-bold uppercase tracking-widest">
+                                {customer.customerId || "N/A"}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-2 text-[10px] uppercase font-mono tracking-widest text-brand-metallic">
+                            Joined: {customer.createdAt ? new Date(customer.createdAt.seconds ? customer.createdAt.seconds * 1000 : customer.createdAt).toLocaleString() : 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col items-end gap-2 md:gap-4 shrink-0">
+                        <span className="text-[9px] uppercase tracking-widest font-bold border border-white/10 px-3 py-1 bg-white/5">
+                          Last Seen: {customer.lastLogin ? new Date(customer.lastLogin.seconds ? customer.lastLogin.seconds * 1000 : customer.lastLogin).toLocaleString() : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Admin Management */}
         {activeTab === "admins" && (
           <div className="space-y-12">
@@ -2770,6 +2837,34 @@ export default function Admin() {
                         onChange={(e) => setSiteSettings({...siteSettings, siteName: e.target.value})}
                         className="w-full bg-black border border-white/10 p-4 text-white text-sm" 
                       />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-brand-metallic uppercase tracking-widest font-bold block mb-2">Website Access</label>
+                      <select 
+                        value={siteSettings.siteAccess || "public"}
+                        onChange={(e) => setSiteSettings({...siteSettings, siteAccess: e.target.value})}
+                        className="w-full bg-black border border-white/10 p-4 text-white text-sm focus:outline-none focus:border-brand-accent transition-colors"
+                      >
+                        <option value="public">Public (Everyone can access)</option>
+                        <option value="members">Members Only (Must login to view site)</option>
+                        <option value="maintenance">Maintenance Mode (Only Admins can access)</option>
+                      </select>
+                      <p className="mt-2 text-[10px] text-brand-metallic">Control who can access the store front-end.</p>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-brand-metallic uppercase tracking-widest font-bold block mb-2">Store Logo (URL)</label>
+                      <input 
+                        type="text" 
+                        value={siteSettings.logoImage || ""}
+                        onChange={(e) => setSiteSettings({...siteSettings, logoImage: e.target.value})}
+                        placeholder="Leave blank to use Store Name as text logo"
+                        className="w-full bg-black border border-white/10 p-4 text-white text-sm" 
+                      />
+                      {siteSettings.logoImage && (
+                        <div className="mt-2 h-16 w-32 border border-white/10 bg-black flex items-center justify-center p-2">
+                          <img src={siteSettings.logoImage} alt="Logo Preview" className="max-h-full max-w-full object-contain" />
+                        </div>
+                      )}
                     </div>
                     <div>
                       <label className="text-[10px] text-brand-metallic uppercase tracking-widest font-bold block mb-2">Theme Accent Color</label>

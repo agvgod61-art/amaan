@@ -68,6 +68,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const { settings } = useSettings();
 
+  const SUPER_ADMINS = ["yamaan115@gmail.com", "avggod61@gmail.com", "agvgod61@gmail.com"];
+  const isAdmin = user?.email && SUPER_ADMINS.includes(user.email.toLowerCase());
+
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
@@ -82,6 +85,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { name: "About", path: "/about" },
     { name: "Contact", path: "/contact" },
     { name: "Track", path: "/track" },
+    ...(isAdmin ? [{ name: "Admin", path: "/admin" }] : [])
   ];
 
   return (
@@ -102,8 +106,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           "max-w-7xl mx-auto px-6 flex items-center justify-between transition-all duration-300",
           scrolled ? "h-16" : "h-20"
         )}>
-          <Link to="/" className="text-xl md:text-2xl font-display font-bold tracking-tighter uppercase whitespace-nowrap">
-            {settings.siteName.split(' ')[0]} <span className="text-brand-accent">{settings.siteName.split(' ').slice(1).join(' ')}</span>
+          <Link to="/" className="flex items-center">
+            {settings.logoImage ? (
+              <img src={settings.logoImage} alt={settings.siteName} className="h-10 object-contain" />
+            ) : (
+              <span className="text-xl md:text-2xl font-display font-bold tracking-tighter uppercase whitespace-nowrap">
+                {settings.siteName.split(' ')[0]} <span className="text-brand-accent">{settings.siteName.split(' ').slice(1).join(' ')}</span>
+              </span>
+            )}
           </Link>
 
           {/* Desktop Nav */}
@@ -242,8 +252,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <footer className="bg-brand-gray border-t border-white/5 py-16 px-6 mt-auto">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
           <div>
-            <Link to="/" className="text-3xl font-display font-bold tracking-tighter uppercase mb-6 inline-block">
-              {settings.siteName.split(' ')[0]} <span className="text-brand-accent">{settings.siteName.split(' ').slice(1).join(' ')}</span>
+            <Link to="/" className="mb-6 inline-block">
+              {settings.logoImage ? (
+                <img src={settings.logoImage} alt={settings.siteName} className="h-12 object-contain" />
+              ) : (
+                <span className="text-3xl font-display font-bold tracking-tighter uppercase whitespace-nowrap">
+                  {settings.siteName.split(' ')[0]} <span className="text-brand-accent">{settings.siteName.split(' ').slice(1).join(' ')}</span>
+                </span>
+              )}
             </Link>
             <p className="text-brand-metallic text-sm leading-relaxed max-w-sm">
               {settings.footerText}

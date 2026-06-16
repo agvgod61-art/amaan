@@ -5,7 +5,7 @@ import { AlertCircle, Loader2, Shield, Mail, Lock, Chrome } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
 export default function Auth() {
-  const [isSignIn, setIsSignIn] = useState(true);
+  const [isSignIn, setIsSignIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);

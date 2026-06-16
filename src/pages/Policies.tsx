@@ -1,6 +1,7 @@
 import React from "react";
 import { Truck, RotateCcw, ShieldAlert, BadgeCheck, AlertTriangle } from "lucide-react";
 import { cn } from "../lib/utils";
+import { useSettings } from "../context/SettingsContext";
 
 const PolicySection = ({ 
   icon: Icon, 
@@ -27,6 +28,8 @@ const PolicySection = ({
 );
 
 export default function Policies() {
+  const { settings } = useSettings();
+  
   return (
     <div className="bg-brand-black min-h-screen pt-32 pb-24 px-6 overflow-hidden relative">
       {/* Background Decorative Elements */}
@@ -50,7 +53,7 @@ export default function Policies() {
         <div className="grid grid-cols-1 gap-8">
           {/* Section 1: Shipping */}
           <PolicySection icon={Truck} title="1. Shipping Policies">
-            <p>At AVG GOD, we treat every order as a priority. Our shipping process is designed to protect the structural integrity of your gear.</p>
+            <p>At {settings.siteName}, we treat every order as a priority. Our shipping process is designed to protect the structural integrity of your gear.</p>
             <ul className="space-y-3 list-none">
               <li className="flex gap-3">
                 <BadgeCheck size={16} className="text-brand-accent shrink-0 mt-0.5" />

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
 import { chatWithGemini } from "../services/geminiService";
 import { getStoreContext } from "../data/chatbotContext";
+import { useSettings } from "../context/SettingsContext";
 
 type Message = {
   role: 'user' | 'model';
@@ -11,9 +12,10 @@ type Message = {
 };
 
 export function ChatBot() {
+  const { settings } = useSettings();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', text: "Hello! What kind of help do you need today?" }
+    { role: 'model', text: `Hello! Welcome to ${settings.siteName}. What kind of help do you need today?` }
   ]);
   const [showOptions, setShowOptions] = useState(true);
   const [input, setInput] = useState("");
@@ -50,8 +52,8 @@ export function ChatBot() {
       parts: [{ text: m.text }]
     }));
 
-    const context = getStoreContext();
-    const response = await chatWithGemini(userMessage, history, context);
+    const context = getStoreContext(settings.siteName);
+    const response = await chatWithGemini(userMessage, history, context, settings.siteName);
 
     setMessages(prev => [...prev, { role: 'model', text: response || "I'm sorry, I couldn't process that." }]);
     setIsLoading(false);
@@ -92,7 +94,7 @@ export function ChatBot() {
                   <Bot size={18} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-white leading-none">AVG Support</h3>
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-white leading-none">{settings.siteName.split(' ')[0]} Support</h3>
                   <span className="text-[9px] text-brand-accent uppercase font-bold tracking-tighter">Powered by MotoGP</span>
                 </div>
               </div>
