@@ -47,9 +47,14 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listen for real-time site settings updates
-    try {
-      const unsubscribe = onSnapshot(doc(db, "settings", "general"), (docSnap) => {
+    // Fallback to ensure we don't get stuck loading forever
+    const loadingTimeout = window.setTimeout(() => setLoading(false), 3000);
+
+    const fetchSettings = async () => {
+      try {
+        const docRef = doc(db, "settings", "general");
+        const docSnap = await getDoc(docRef);
+        
         if (docSnap.exists()) {
           const data = docSnap.data() as SiteSettings;
           
@@ -60,21 +65,21 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             document.documentElement.style.setProperty('--brand-accent-color', data.accentColor);
           }
         }
-        setLoading(false);
-      }, (error) => {
+      } catch (error) {
         if (!isQuotaError(error)) {
           console.warn("Could not load site settings, using defaults.", error);
         } else {
           console.warn("Firestore quota exceeded while loading site settings. Using defaults.");
         }
+      } finally {
+        clearTimeout(loadingTimeout);
         setLoading(false);
-      });
+      }
+    };
 
-      return () => unsubscribe();
-    } catch (e) {
-      console.warn("Firebase settings setup skipped:", e);
-      setLoading(false);
-    }
+    fetchSettings();
+    
+    return () => clearTimeout(loadingTimeout);
   }, []);
 
   return (

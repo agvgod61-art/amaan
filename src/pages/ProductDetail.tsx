@@ -10,7 +10,7 @@ import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 import { useAuth } from "../context/AuthContext";
 import { db, handleFirestoreError, OperationType, isQuotaError } from "../lib/firebase";
-import { doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, limit } from "../lib/firebase";
+import { doc, getDoc, getDocs, collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, limit } from "../lib/firebase";
 
 import ErrorBoundary from "../components/ErrorBoundary";
 import { useSettings } from "../context/SettingsContext";
@@ -104,36 +104,34 @@ function ProductDetail() {
   useEffect(() => {
     if (!id) return;
 
-    try {
-      const q = query(
-        collection(db, "reviews"),
-        where("productId", "==", id),
-        orderBy("createdAt", "desc"),
-        limit(20)
-      );
+    const fetchReviews = async () => {
+      try {
+        const q = query(
+          collection(db, "reviews"),
+          where("productId", "==", id),
+          orderBy("createdAt", "desc"),
+          limit(20)
+        );
 
-      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const snapshot = await getDocs(q);
         const fetchedReviews = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
           date: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
         }));
         setReviews(fetchedReviews);
-        setReviewsLoading(false);
-      }, (error) => {
+      } catch (error) {
         if (!isQuotaError(error)) {
           console.error("Error fetching reviews:", error);
         } else {
           console.warn("Firestore quota exceeded while fetching reviews.");
         }
+      } finally {
         setReviewsLoading(false);
-      });
+      }
+    };
 
-      return () => unsubscribe();
-    } catch (e) {
-      console.warn("Firebase reviews setup skipped:", e);
-      setReviewsLoading(false);
-    }
+    fetchReviews();
   }, [id]);
 
   const handleSubmitReview = async (e: React.FormEvent) => {
