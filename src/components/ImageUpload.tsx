@@ -144,6 +144,7 @@ export default function ImageUpload({ onUploadComplete, label = "Upload Image", 
               <div className="flex flex-col items-center gap-2">
                 <AlertCircle className="text-red-500" size={24} />
                 <button 
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setError(null);

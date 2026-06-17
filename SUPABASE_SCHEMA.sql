@@ -214,3 +214,32 @@ CREATE POLICY "Public can read site config" ON public.site_config FOR SELECT USI
 CREATE POLICY "Only admins can modify site config" ON public.site_config FOR ALL USING (
   EXISTS (SELECT 1 FROM public.admins WHERE email = auth.jwt() ->> 'email')
 );
+
+-- 12. Storage Policies
+-- IMPORTANT: You must create a storage bucket named 'app-files' in the Supabase Dashboard,
+-- and then run the following queries to allow uploads and access.
+
+INSERT INTO storage.buckets (id, name, public) VALUES ('app-files', 'app-files', false) ON CONFLICT DO NOTHING;
+
+-- Allow public read access to files (or adjust to authenticated based on your needs)
+CREATE POLICY "Public Access" 
+ON storage.objects FOR SELECT 
+USING ( bucket_id = 'app-files' );
+
+-- Allow authenticated users to upload files
+CREATE POLICY "Authenticated users can upload" 
+ON storage.objects FOR INSERT 
+TO authenticated 
+WITH CHECK ( bucket_id = 'app-files' );
+
+-- Allow authenticated users to update their files
+CREATE POLICY "Users can update their files" 
+ON storage.objects FOR UPDATE 
+TO authenticated 
+USING ( bucket_id = 'app-files' );
+
+-- Allow authenticated users to delete their files
+CREATE POLICY "Users can delete their files" 
+ON storage.objects FOR DELETE 
+TO authenticated 
+USING ( bucket_id = 'app-files' );

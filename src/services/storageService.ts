@@ -15,7 +15,7 @@ export const uploadFileToStorage = async (
   const userId = user?.id || 'guest';
   
   const extension = originalName.split('.').pop() || 'tmp';
-  const uuid = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString();
+  const uuid = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString();
   const fileName = `${userId}/${featureName}/${itemId}/${uuid}.${extension}`;
   
   console.log(`[Storage] Starting upload of ${originalName} (${(file.size / 1024).toFixed(1)} KB)`);
@@ -28,7 +28,23 @@ export const uploadFileToStorage = async (
 
   if (error) {
     console.error("Supabase Storage Upload Error:", error);
-    throw new Error(error.message || "Upload failed. Please try again.");
+    console.warn("Falling back to Base64 Data URL due to storage error (likely RLS).");
+    try {
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (reader.result) resolve(reader.result as string);
+          else reject(new Error("Failed to read file"));
+        };
+        reader.onerror = () => reject(new Error("File reading failed"));
+        reader.readAsDataURL(file);
+      });
+    } catch (fallbackError) {
+      if (error.message && error.message.includes("row-level security policy")) {
+        throw new Error(`Upload rejected. Please ensure your Supabase "app-files" storage bucket has RLS INSERT policies enabled for authenticated users.`);
+      }
+      throw new Error(error.message || "Upload failed. Please try again.");
+    }
   }
   
   if (onProgress) onProgress(100);
