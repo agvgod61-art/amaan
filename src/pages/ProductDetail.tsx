@@ -14,6 +14,7 @@ import { doc, getDoc, getDocs, collection, query, where, orderBy, onSnapshot, ad
 
 import ErrorBoundary from "../components/ErrorBoundary";
 import { useSettings } from "../context/SettingsContext";
+import StorageImage from '../components/StorageImage';
 
 function ProductDetail() {
   const controls = useAnimation();  
@@ -775,7 +776,7 @@ function ProductDetail() {
                       title="Play Video"
                     >
                       {displayImages[0] && (
-                        <img 
+                        <StorageImage 
                           src={displayImages[0]} 
                           alt="Video thumbnail" 
                           className="absolute inset-0 w-full h-full object-cover opacity-30 grayscale blur-[2px]" 
@@ -796,7 +797,7 @@ function ProductDetail() {
                             activeImage === idx ? "border-brand-accent ring-1 ring-brand-accent/30" : "border-white/10 hover:border-white/30"
                           )}
                         >
-                          <img 
+                          <StorageImage 
                             src={img} 
                             alt={`${product.name} thumbnail ${idx + 2}`} 
                             className="w-full h-full object-cover group-hover/thumb:scale-110 transition-transform" 
@@ -889,7 +890,7 @@ function ProductDetail() {
               {product.videoUrl && (
                 <div className="relative aspect-square bg-white/5 border border-white/10 flex items-center justify-center p-6 overflow-hidden group">
                   {displayImages[0] && (
-                    <img 
+                    <StorageImage 
                       src={displayImages[0]} 
                       alt="Video Mask" 
                       className="absolute inset-0 w-full h-full object-cover opacity-10 blur-sm grayscale" 
@@ -916,7 +917,7 @@ function ProductDetail() {
                   }}
                   className="relative aspect-square bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden group hover:border-brand-accent transition-all"
                 >
-                  <img 
+                  <StorageImage 
                     src={img} 
                     alt={`${product.name} view ${idx + 1}`} 
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
@@ -1429,7 +1430,7 @@ function ProductDetail() {
                               <div className="flex flex-wrap gap-2">
                                 {[review.image, ...(review.images || [])].filter(Boolean).map((img, i) => (
                                   <div key={i} className="relative group/review-img">
-                                    <img 
+                                    <StorageImage 
                                       src={img} 
                                       alt="Review Gear" 
                                       className="w-20 h-20 object-cover rounded-sm border border-white/10"
@@ -1574,7 +1575,7 @@ function ProductDetail() {
                 className="group relative bg-brand-gray/20 border border-white/5 hover:border-brand-accent/50 transition-all flex flex-col"
               >
                 <Link to={`/product/${p.id}`} className="relative aspect-square overflow-hidden bg-brand-gray/40 flex items-center justify-center p-8">
-                  <img 
+                  <StorageImage 
                     src={p.image} 
                     alt={p.name} 
                     className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110" 

@@ -183,7 +183,22 @@ CREATE POLICY "Only admins can modify settings" ON public.settings FOR ALL USING
   EXISTS (SELECT 1 FROM public.admins WHERE email = auth.jwt() ->> 'email')
 );
 
--- 10. Site Config (gallery)
+-- 11. Notes
+CREATE TABLE public.notes (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS for notes
+ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage their own notes" ON public.notes FOR ALL USING (
+  auth.uid()::text = user_id
+) WITH CHECK (
+  auth.uid()::text = user_id
+);
+
 CREATE TABLE public.site_config (
   id TEXT PRIMARY KEY, -- 'homepage_gallery'
   wide_image TEXT,

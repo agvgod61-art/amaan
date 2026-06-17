@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { User, Mail, Lock, LogOut, CheckCircle2, AlertCircle, Loader2, ShieldCheck, Package, Search } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { cn } from "../lib/utils";
+import UserNotes from "../components/UserNotes";
 
 export default function Profile() {
   const { user, loading: authLoading, logout, updateName, changeEmail, resetPassword } = useAuth();
@@ -185,6 +186,8 @@ export default function Profile() {
               </button>
             </div>
           </div>
+
+          <UserNotes />
 
           {!isGoogleUser && (
             <div className="bg-white/5 border border-white/10 p-8 flex items-center justify-between">

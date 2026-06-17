@@ -6,6 +6,7 @@ import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../lib/firebase";
 import { collection, addDoc, serverTimestamp } from "../lib/firebase";
+import StorageImage from '../components/StorageImage';
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -311,7 +312,7 @@ export default function Checkout() {
                 <div key={`${item.product.id}-${item.size}-${item.color || 'none'}-${idx}`} className="flex gap-4 p-4 bg-white/5 border border-white/10 items-center">
                   <div className="w-20 h-20 bg-black/50 p-2 flex-shrink-0 flex items-center justify-center overflow-hidden">
                     {itemImage ? (
-                      <img 
+                      <StorageImage 
                         src={itemImage} 
                         alt={item.product.name} 
                         className="w-full h-full object-cover" 

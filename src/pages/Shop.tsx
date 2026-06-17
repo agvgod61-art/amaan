@@ -8,6 +8,7 @@ import { useWishlist } from "../context/WishlistContext";
 import { useCart } from "../context/CartContext";
 import { db, isQuotaError } from "../lib/firebase";
 import { collection, getDocs, query, limit, startAfter, orderBy, where, getDocsFromCache } from "../lib/firebase";
+import StorageImage from '../components/StorageImage';
 
 // Separate Product Card Component for Hover Spin Logic
 const ProductCard = ({ 
@@ -76,7 +77,7 @@ const ProductCard = ({
           
           {/* Product Image */}
           <div className="absolute inset-0">
-            <img 
+            <StorageImage 
               src={product.image} 
               alt={product.name} 
               className="w-full h-full object-contain p-4 transition-transform duration-500 hover:scale-105" 
@@ -460,7 +461,7 @@ export default function Shop() {
                         {(() => {
                           const cat = dbCategories.find(c => c.name === type);
                           return cat?.image ? (
-                            <img 
+                            <StorageImage 
                               src={cat.image} 
                               alt={type} 
                               className="w-full h-full object-cover" 
@@ -788,7 +789,7 @@ export default function Shop() {
                   </div>
                 )}
                 {quickViewProduct.image && (
-                  <img 
+                  <StorageImage 
                     src={quickViewProduct.image} 
                     alt={quickViewProduct.name} 
                     className="max-w-[90%] max-h-[90%] object-contain" 

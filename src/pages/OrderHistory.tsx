@@ -6,6 +6,7 @@ import { collection, query, where, getDocs, orderBy, limit, getDocsFromCache } f
 import { useAuth } from "../context/AuthContext";
 import { cn } from "../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
+import StorageImage from '../components/StorageImage';
 
 export default function OrderHistory() {
   const { user, loading: authLoading } = useAuth();
@@ -257,7 +258,7 @@ export default function OrderHistory() {
                                     <div key={idx} className="flex items-center gap-4 text-white p-3 bg-white/5 border border-white/5">
                                       <div className="w-12 h-12 bg-black border border-white/10 flex items-center justify-center overflow-hidden">
                                         {item.product?.image ? (
-                                          <img 
+                                          <StorageImage 
                                             src={item.product.image} 
                                             alt={item.product.name} 
                                             className="w-full h-full object-cover" 

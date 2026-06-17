@@ -4,6 +4,7 @@ import { galleryImages as staticImages, GalleryImage } from "../data/gallery";
 import { Instagram, Fullscreen, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { supabase } from '../lib/supabase';
 import { getEmbedUrl, isVideoUrl } from "../lib/mediaUtils";
+import StorageImage from '../components/StorageImage';
 
 const Gallery = () => {
   const [dynamicImages, setDynamicImages] = useState<GalleryImage[]>([]);
@@ -103,7 +104,7 @@ const Gallery = () => {
               onClick={() => openLightbox(image, index)}
               className="group relative aspect-square overflow-hidden bg-brand-gray border border-white/5 cursor-pointer"
             >
-              <img 
+              <StorageImage 
                 src={image.url} 
                 alt={image.model} 
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
@@ -192,7 +193,7 @@ const Gallery = () => {
                 ) : (
                   selectedImage.url && (
                     <div className="max-h-[80vh] w-auto bg-white/5 flex items-center justify-center border border-white/10 overflow-hidden">
-                      <img 
+                      <StorageImage 
                         src={selectedImage.url} 
                         alt={selectedImage.model} 
                         className="max-h-full w-auto object-contain pointer-events-auto" 

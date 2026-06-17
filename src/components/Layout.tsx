@@ -8,6 +8,7 @@ import { useWishlist } from "../context/WishlistContext";
 import { useAuth } from "../context/AuthContext";
 import { useSettings } from "../context/SettingsContext";
 import BackToTop from "./BackToTop";
+import StorageImage from './StorageImage';
 
 function NewsletterForm() {
   const [email, setEmail] = useState("");
@@ -108,7 +109,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         )}>
           <Link to="/" className="flex items-center">
             {settings.logoImage ? (
-              <img src={settings.logoImage} alt={settings.siteName} className="h-10 object-contain" />
+              <StorageImage src={settings.logoImage} alt={settings.siteName} className="h-10 object-contain" />
             ) : (
               <span className="text-xl md:text-2xl font-display font-bold tracking-tighter uppercase whitespace-nowrap">
                 {settings.siteName.split(' ')[0]} <span className="text-brand-accent">{settings.siteName.split(' ').slice(1).join(' ')}</span>
@@ -159,7 +160,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 </Link>
                 <Link to="/profile" className="w-10 h-10 rounded-full bg-brand-accent/20 border border-brand-accent/30 flex items-center justify-center text-brand-accent overflow-hidden hover:border-brand-accent transition-all transform hover:scale-105">
                   {user.photoURL ? (
-                    <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
+                    <StorageImage src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
                     <User size={20} />
                   )}
@@ -254,7 +255,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div>
             <Link to="/" className="mb-6 inline-block">
               {settings.logoImage ? (
-                <img src={settings.logoImage} alt={settings.siteName} className="h-12 object-contain" />
+                <StorageImage src={settings.logoImage} alt={settings.siteName} className="h-12 object-contain" />
               ) : (
                 <span className="text-3xl font-display font-bold tracking-tighter uppercase whitespace-nowrap">
                   {settings.siteName.split(' ')[0]} <span className="text-brand-accent">{settings.siteName.split(' ').slice(1).join(' ')}</span>

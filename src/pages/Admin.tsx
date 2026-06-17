@@ -9,6 +9,7 @@ import { products as initialProducts } from "../data/products";
 import { cn } from "../lib/utils";
 import ImageUpload from "../components/ImageUpload";
 import { getEmbedUrl } from "../lib/mediaUtils";
+import StorageImage from '../components/StorageImage';
 
 type AdminTab = "dashboard" | "orders" | "products" | "categories" | "admins" | "media" | "setup" | "site" | "reviews" | "security" | "customers";
 
@@ -328,6 +329,11 @@ export default function Admin() {
   const handleDeleteCategory = async (id: string) => {
     if (!window.confirm("Delete this category? Products won't be deleted, but they will lose their category link.")) return;
     try {
+      const cat = categories.find(c => c.id === id);
+      if (cat?.image && !cat.image.startsWith('http') && !cat.image.startsWith('data:') && !cat.image.startsWith('blob:')) {
+         const { deleteFileFromStorage } = await import('../services/storageService');
+         await deleteFileFromStorage(cat.image).catch(console.error);
+      }
       await deleteDoc(doc(db, "categories", id));
       setCategories(categories.filter(c => c.id !== id));
       setMessage("Category removed");
@@ -341,17 +347,32 @@ export default function Admin() {
   const scanForInvalidImages = async () => {
     setPurgeStatus('scanning');
     
-    const isFormatInvalid = (url: string) => !url || !(url.startsWith('http') || url.startsWith('data:image'));
+    // Accept valid Supabase paths (which do not start with http or data:)
+    const isFormatInvalid = (url: string) => {
+      if (!url) return true;
+      if (url.startsWith('http') || url.startsWith('data:image') || url.startsWith('blob:')) return false;
+      // Simple heuristic for supabase paths: contains a slash and no spaces
+      return url.includes(' ') || !url.includes('/');
+    };
     
-    const isImageBroken = (url: string): Promise<boolean> => {
-      if (isFormatInvalid(url)) return Promise.resolve(true);
-      if (url.startsWith('data:')) return Promise.resolve(false);
+    const isImageBroken = async (url: string): Promise<boolean> => {
+      if (isFormatInvalid(url)) return true;
+      if (url.startsWith('data:') || url.startsWith('blob:')) return false;
+      
+      let testUrl = url;
+      // If it's a Supabase path without http, fetch the signed URL to test it
+      if (!url.startsWith('http')) {
+         const { getSignedImageUrl } = await import('../services/storageService');
+         const signedUrl = await getSignedImageUrl(url);
+         if (signedUrl === url) return true; // could not resolve
+         testUrl = signedUrl;
+      }
       
       return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => resolve(false);
         img.onerror = () => resolve(true);
-        img.src = url;
+        img.src = testUrl;
         setTimeout(() => resolve(true), 5000);
       });
     };
@@ -947,7 +968,20 @@ export default function Admin() {
       
       // 2. Cleanup Storage if applicable
       const cleanupStorage = async (url: string) => {
-        if (url && url.includes('firebasestorage.googleapis.com')) {
+        if (!url) return;
+        
+        // Supabase App-Files bucket cleanup
+        if (!url.startsWith('http') && !url.startsWith('data:') && !url.startsWith('blob:')) {
+          try {
+             const { deleteFileFromStorage } = await import('../services/storageService');
+             await deleteFileFromStorage(url);
+          } catch (e) {
+             console.error("Supabase Storage cleanup failed:", e);
+          }
+        }
+        
+        // Firebase Storage cleanup
+        if (url.includes('firebasestorage.googleapis.com')) {
           try {
             // Extract path from storage URL
             const decodedUrl = decodeURIComponent(url);
@@ -968,7 +1002,13 @@ export default function Admin() {
       // Cleanup gallery images
       if (images && Array.isArray(images)) {
         for (const imgUrl of images) {
-          await cleanupStorage(imgUrl);
+           await cleanupStorage(imgUrl);
+        }
+      }
+      // Cleanup color variant images
+      if (product.colors && Array.isArray(product.colors)) {
+        for (const color of product.colors) {
+           if (color.image) await cleanupStorage(color.image);
         }
       }
 
@@ -1240,6 +1280,8 @@ export default function Admin() {
                              ? setEditingCategory({...editingCategory, image: url}) 
                              : setNewCategory({...newCategory, image: url})}
                            label="Category Icon"
+                           featureName="categories"
+                           itemId={editingCategory ? editingCategory.id : "new"}
                          />
                       </div>
                   </div>
@@ -1247,7 +1289,7 @@ export default function Admin() {
                    {((editingCategory?.image) || (newCategory.image)) && (
                      <>
                         <div className="h-20 w-20 border border-white/10 p-2 bg-white/5 overflow-hidden">
-                          <img 
+                          <StorageImage 
                             src={editingCategory ? editingCategory.image : newCategory.image} 
                             alt="Category Preview" 
                             className="w-full h-full object-cover" 
@@ -1327,7 +1369,7 @@ export default function Admin() {
                           </div>
                           <div className="flex-shrink-0 w-12 h-12 bg-white/5 flex items-center justify-center border border-white/5 overflow-hidden rounded-sm">
                             {cat.image ? (
-                              <img 
+                              <StorageImage 
                                 src={cat.image} 
                                 alt={cat.name} 
                                 className="w-full h-full object-cover" 
@@ -1465,6 +1507,8 @@ export default function Admin() {
                   <ImageUpload 
                     onUploadComplete={(url) => setNewProduct({...newProduct, image: url})}
                     initialUrl={newProduct.image}
+                    featureName="products"
+                    itemId="new"
                   />
                 </div>
                 <div>
@@ -1648,10 +1692,12 @@ export default function Admin() {
                           }}
                           label={`Image View ${idx + 1}`}
                           initialUrl={img}
+                          featureName="products"
+                          itemId="new"
                         />
                         {img && (
                           <div className="h-40 w-full border border-white/10 overflow-hidden bg-white/5 flex items-center justify-center relative group">
-                            <img 
+                            <StorageImage 
                               src={img} 
                               alt={`View ${idx + 1}`} 
                               className="w-full h-full object-cover" 
@@ -1774,7 +1820,7 @@ export default function Admin() {
                             <div className="flex items-center gap-3 shrink-0">
                               {color.image && (
                                 <div className="w-8 h-8 rounded-sm bg-zinc-950 border border-white/10 overflow-hidden flex items-center justify-center">
-                                  <img 
+                                  <StorageImage 
                                     src={color.image} 
                                     alt={color.name} 
                                     className="w-full h-full object-cover" 
@@ -1842,11 +1888,13 @@ export default function Admin() {
                             <ImageUpload
                               onUploadComplete={(url) => setTempColor({ ...tempColor, image: url })}
                               label="Upload"
+                              featureName="products"
+                              itemId="new-variant"
                             />
                           </div>
                           {tempColor.image && (
                             <div className="w-10 h-10 border border-white/20 overflow-hidden relative shrink-0">
-                              <img 
+                              <StorageImage 
                                 src={tempColor.image} 
                                 alt="Variant Preview" 
                                 className="w-full h-full object-cover" 
@@ -2025,11 +2073,13 @@ export default function Admin() {
                 <ImageUpload 
                   onUploadComplete={(url) => setEditingProduct({...editingProduct, image: url})}
                   initialUrl={editingProduct.image}
+                  featureName="products"
+                  itemId={editingProduct.id}
                 />
                 {editingProduct.image && (
                   <div className="mt-2 flex items-center justify-between gap-2 p-2 bg-black border border-white/10">
                     <div className="h-8 w-8 overflow-hidden rounded-sm bg-brand-black flex items-center justify-center">
-                      <img 
+                      <StorageImage 
                         src={editingProduct.image} 
                         alt="Hero" 
                         className="w-full h-full object-cover" 
@@ -2310,11 +2360,13 @@ export default function Admin() {
                         }}
                         label={`Persp. ${idx + 1}`}
                         initialUrl={img}
+                        featureName="products"
+                        itemId={editingProduct.id}
                       />
                       {img && (
                         <div className="flex items-center justify-between gap-2 p-2 bg-black border border-white/10">
                           <div className="h-8 w-8 overflow-hidden rounded-sm bg-brand-black flex items-center justify-center">
-                            <img 
+                            <StorageImage 
                               src={img} 
                               alt={`P.${idx+1}`} 
                               className="w-full h-full object-cover" 
@@ -2374,7 +2426,7 @@ export default function Admin() {
                         <div className="flex items-center gap-3 shrink-0">
                           {color.image && (
                             <div className="w-8 h-8 rounded-sm bg-zinc-950 border border-white/10 overflow-hidden flex items-center justify-center">
-                              <img 
+                              <StorageImage 
                                 src={color.image} 
                                 alt={color.name} 
                                 className="w-full h-full object-cover" 
@@ -2442,11 +2494,13 @@ export default function Admin() {
                         <ImageUpload
                           onUploadComplete={(url) => setTempColorEdit({ ...tempColorEdit, image: url })}
                           label="Upload"
+                          featureName="products"
+                          itemId={editingProduct.id}
                         />
                       </div>
                       {tempColorEdit.image && (
                         <div className="w-10 h-10 border border-white/20 overflow-hidden relative shrink-0">
-                          <img 
+                          <StorageImage 
                             src={tempColorEdit.image} 
                             alt="Variant Preview" 
                             className="w-full h-full object-cover" 
@@ -2488,7 +2542,7 @@ export default function Admin() {
               <div className="flex items-center gap-6">
                 {product.image && (
                   <div className="w-16 h-16 bg-black flex items-center justify-center border border-white/5 overflow-hidden">
-                    <img 
+                    <StorageImage 
                       src={product.image} 
                       alt={product.name} 
                       className="w-full h-full object-cover" 
@@ -2691,7 +2745,7 @@ export default function Admin() {
                     {dbProducts.map(p => (
                       <div key={p.id} className="aspect-square bg-black border border-white/5 overflow-hidden group/thumb relative flex items-center justify-center">
                         {p.image ? (
-                          <img 
+                          <StorageImage 
                             src={p.image} 
                             alt={p.name} 
                             className="w-full h-full object-cover" 
@@ -2862,7 +2916,7 @@ export default function Admin() {
                       />
                       {siteSettings.logoImage && (
                         <div className="mt-2 h-16 w-32 border border-white/10 bg-black flex items-center justify-center p-2">
-                          <img src={siteSettings.logoImage} alt="Logo Preview" className="max-h-full max-w-full object-contain" />
+                          <StorageImage src={siteSettings.logoImage} alt="Logo Preview" className="max-h-full max-w-full object-contain" />
                         </div>
                       )}
                     </div>
@@ -2952,7 +3006,7 @@ export default function Admin() {
                                   )}
                                 >
                                   {p.image && <div className="w-full h-full bg-brand-black flex items-center justify-center border border-white/10 overflow-hidden">
-                                     <img 
+                                     <StorageImage 
                                        src={p.image} 
                                        alt={p.name} 
                                        className="w-full h-full object-cover" 
@@ -2967,6 +3021,8 @@ export default function Admin() {
                                     setSiteSettings({...siteSettings, heroImage: url});
                                     setShowHeroMediaPicker(false);
                                   }}
+                                  featureName="site_settings"
+                                  itemId="heroImage"
                                 />
                               </div>
                             </div>
@@ -2975,7 +3031,7 @@ export default function Admin() {
                         
                         {siteSettings.heroImage && (
                           <div className="mt-4 relative aspect-[21/9] bg-brand-black border border-white/10 overflow-hidden">
-                             <img 
+                             <StorageImage 
                                src={siteSettings.heroImage} 
                                alt="Hero Preview" 
                                className="w-full h-full object-cover opacity-60" 
@@ -3095,13 +3151,15 @@ export default function Admin() {
                             setTimeout(() => setMessage(""), 3000);
                           }}
                           label="Upload Image"
+                          featureName="site_settings"
+                          itemId="gallery-wideImage"
                         />
                       </div>
                     </div>
                     
                     {gallerySettings.wideImage && (
                       <div className="aspect-[21/9] bg-black border border-white/10 overflow-hidden">
-                        <img 
+                        <StorageImage 
                           src={gallerySettings.wideImage} 
                           alt="Wide Feature" 
                           className="w-full h-full object-cover" 
@@ -3133,12 +3191,14 @@ export default function Admin() {
                         <ImageUpload 
                           onUploadComplete={(url) => setGallerySettings({...gallerySettings, squareImage1: url})}
                           label="Upload"
+                          featureName="site_settings"
+                          itemId="gallery-squareImage1"
                         />
                       </div>
                     </div>
                     {gallerySettings.squareImage1 && (
                       <div className="aspect-square bg-black border border-white/10 overflow-hidden">
-                        <img 
+                        <StorageImage 
                           src={gallerySettings.squareImage1} 
                           alt="Square Feature 1" 
                           className="w-full h-full object-cover" 
@@ -3170,12 +3230,14 @@ export default function Admin() {
                         <ImageUpload 
                           onUploadComplete={(url) => setGallerySettings({...gallerySettings, squareImage2: url})}
                           label="Upload"
+                          featureName="site_settings"
+                          itemId="gallery-squareImage2"
                         />
                       </div>
                     </div>
                     {gallerySettings.squareImage2 && (
                       <div className="aspect-square bg-black border border-white/10 overflow-hidden">
-                        <img 
+                        <StorageImage 
                           src={gallerySettings.squareImage2} 
                           alt="Square Feature 2" 
                           className="w-full h-full object-cover" 
@@ -3207,12 +3269,14 @@ export default function Admin() {
                         <ImageUpload 
                           onUploadComplete={(url) => setGallerySettings({...gallerySettings, technicalImage: url})}
                           label="Upload"
+                          featureName="site_settings"
+                          itemId="gallery-technicalImage"
                         />
                       </div>
                     </div>
                     {gallerySettings.technicalImage && (
                       <div className="aspect-video bg-brand-black border border-white/10 overflow-hidden">
-                         <img 
+                         <StorageImage 
                            src={gallerySettings.technicalImage} 
                            alt="Technical Scanner" 
                            className="w-full h-full object-cover opacity-60" 
@@ -3313,7 +3377,7 @@ export default function Admin() {
                             "relative aspect-square w-full mb-8 overflow-hidden rounded-sm bg-brand-black border transition-all",
                             review.isAdminReview ? "border-green-500/20" : "border-red-500/20"
                           )}>
-                             <img 
+                             <StorageImage 
                                src={review.image} 
                                alt="Customer Review" 
                                className="w-full h-full object-cover opacity-60" 

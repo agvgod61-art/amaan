@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { optimizeImage } from '../lib/imageUtils';
 import { cn } from '../lib/utils';
+import { getSignedImageUrl } from '../services/storageService';
+import StorageImage from './StorageImage';
 
 interface ImageUploadProps {
   onUploadComplete: (url: string) => void;
@@ -9,14 +11,28 @@ interface ImageUploadProps {
   className?: string;
   initialUrl?: string;
   accept?: string;
+  featureName?: string;
+  itemId?: string;
 }
 
-export default function ImageUpload({ onUploadComplete, label = "Upload Image", className, initialUrl, accept = "image/*" }: ImageUploadProps) {
+export default function ImageUpload({ onUploadComplete, label = "Upload Image", className, initialUrl, accept = "image/*", featureName = "general", itemId = "new" }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<string | null>(initialUrl || null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [pasteUrl, setPasteUrl] = useState<string>('');
+
+  useEffect(() => {
+    if (initialUrl) {
+      if (initialUrl.startsWith('http') || initialUrl.startsWith('data:') || initialUrl.startsWith('blob:')) {
+        setPreview(initialUrl);
+      } else {
+        getSignedImageUrl(initialUrl).then(setPreview).catch(() => setPreview(initialUrl));
+      }
+    } else {
+      setPreview(null);
+    }
+  }, [initialUrl]);
 
   const handleUrlSubmit = (e?: React.FormEvent | React.MouseEvent | React.KeyboardEvent) => {
     if (e && e.preventDefault) {
@@ -67,16 +83,14 @@ export default function ImageUpload({ onUploadComplete, label = "Upload Image", 
         fileToUpload = await optimizeImage(file);
       }
 
-      // Convert to data URL instead of uploading to cloud storage
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        onUploadComplete(base64);
-        setSuccess(true);
-        if (isImage) setPreview(base64);
-        setUploading(false);
-      };
-      reader.readAsDataURL(fileToUpload);
+      // Import upload service dynamically to avoid circular deps or just top level
+      const { uploadFileToStorage } = await import('../services/storageService');
+      
+      const url = await uploadFileToStorage(fileToUpload, file.name, featureName, itemId);
+      onUploadComplete(url);
+      setSuccess(true);
+      // Removed setPreview(url) so we keep the localUrl as preview for better UX
+      setUploading(false);
     } catch (err: any) {
       setError(err.message || "Failed to process image");
       setUploading(false);
@@ -107,7 +121,7 @@ export default function ImageUpload({ onUploadComplete, label = "Upload Image", 
         )}>
           {preview ? (
             <div className="absolute inset-0 z-0">
-               <img 
+               <StorageImage 
                  src={preview} 
                  alt="Preview" 
                  className={cn(

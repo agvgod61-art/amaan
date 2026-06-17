@@ -4,6 +4,7 @@ import { Search, Loader2, Package, Clock, ShieldCheck, AlertCircle, MapPin, Cred
 import { db, isQuotaError } from "../lib/firebase";
 import { doc, getDoc, getDocFromCache } from "../lib/firebase";
 import { cn } from "../lib/utils";
+import StorageImage from '../components/StorageImage';
 
 export default function TrackOrder() {
   const [searchParams] = useSearchParams();
@@ -191,7 +192,7 @@ export default function TrackOrder() {
                   <div key={idx} className="flex items-center gap-6 group/item pb-6 border-b border-white/5 last:border-0 last:pb-0">
                     <div className="w-16 h-16 bg-black p-2 border border-white/5 flex-shrink-0 flex items-center justify-center overflow-hidden">
                       {item.product?.image ? (
-                        <img 
+                        <StorageImage 
                           src={item.product.image} 
                           alt={item.product.name} 
                           className="w-full h-full object-cover" 

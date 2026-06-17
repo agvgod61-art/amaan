@@ -12,6 +12,7 @@ import { useSettings } from "../context/SettingsContext";
 
 import { Edit2, X as CloseIcon } from "lucide-react";
 import { auth } from "../lib/firebase";
+import StorageImage from '../components/StorageImage';
 
 interface GalleryConfig {
   wideImage: string;
@@ -132,7 +133,7 @@ export default function Home() {
       {/* 1. HERO BANNER - Recipe 2 (Editorial) & 11 (Split Layout) inspiration */}
       <section className="relative min-h-[90vh] flex items-center overflow-hidden border-b border-white/5">
         <div className="absolute inset-0 z-0">
-          <img 
+          <StorageImage 
             src={settings.heroImage} 
             alt="Hero Background" 
             className="w-full h-full object-cover opacity-60 brightness-75"
@@ -216,21 +217,21 @@ export default function Home() {
                 </Link>
               )}
               <div className="col-span-2 relative aspect-[21/9] overflow-hidden bg-brand-gray border border-white/5 group">
-                <img 
+                <StorageImage 
                   src={gallery.wideImage} 
                   alt="AGV Showcase" 
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
               </div>
               <div className="relative aspect-square overflow-hidden bg-brand-gray border border-white/5 group">
-                <img 
+                <StorageImage 
                   src={gallery.squareImage1} 
                   alt="Detail close-up" 
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />
               </div>
               <div className="relative aspect-square overflow-hidden bg-brand-gray border border-white/5 group">
-                <img 
+                <StorageImage 
                   src={gallery.squareImage2} 
                   alt="Action shot" 
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
@@ -271,7 +272,7 @@ export default function Home() {
                   className="w-full h-[2px] bg-brand-accent shadow-[0_0_15px_rgba(255,60,60,0.8)] opacity-100"
                 />
               </div>
-              <img 
+              <StorageImage 
                 src={gallery.technicalImage} 
                 alt="Scanning helmet interior" 
                 className="w-full h-full object-cover grayscale brightness-50 mix-blend-screen transition-all duration-700 group-hover:grayscale-0 group-hover:brightness-100"
@@ -421,7 +422,7 @@ export default function Home() {
                       </motion.button>
                       <Link to={`/product/${product.id}`} className="flex flex-col border border-white/5 bg-brand-black p-6 hover:border-brand-accent/30 transition-all duration-300 h-full pointer-events-auto">
                         <div className="relative aspect-square mb-6 overflow-hidden flex items-center justify-center bg-white/5 p-8">
-                           <img 
+                           <StorageImage 
                               src={product.image} 
                               alt={product.name} 
                               className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
@@ -596,7 +597,7 @@ export default function Home() {
                       </button>
                       <Link to={`/product/${product.id}`} className="flex flex-col border border-white/5 bg-brand-gray p-6 hover:border-brand-accent/30 transition-all duration-300 h-full pointer-events-auto">
                         <div className="relative aspect-square mb-6 overflow-hidden">
-                          <img 
+                          <StorageImage 
                             src={product.image} 
                             alt={product.name} 
                             className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110" 

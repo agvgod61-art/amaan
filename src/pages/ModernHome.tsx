@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { products as staticProducts } from "../data/products";
+import StorageImage from '../components/StorageImage';
 
 export default function ModernHome() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -134,7 +135,7 @@ export default function ModernHome() {
             >
                <div className="relative group">
                   <div className="absolute inset-0 bg-white/5 rounded-full blur-3xl group-hover:bg-[#e94560]/10 transition-all duration-700" />
-                  <img 
+                  <StorageImage 
                     src="https://dainese-cdn.thron.com/delivery/public/image/dainese/35790505-f6f1-41c6-9537-3cbad2f167cc/px6qct/std/960x960/2118395016_027_1.png" 
                     alt="Premium Helmet"
                     className="w-full max-w-2xl relative z-10 drop-shadow-[0_35px_35px_rgba(0,0,0,0.6)] animate-bounce-slow"
@@ -213,7 +214,7 @@ export default function ModernHome() {
                   </div>
 
                   <div className="h-[280px] bg-gradient-to-br from-[#f8f9fa] to-[#e9ecef] flex items-center justify-center overflow-hidden">
-                     <img 
+                     <StorageImage 
                        src={product.image} 
                        alt={product.name}
                        className="w-4/5 h-4/5 object-contain transition-transform duration-500 group-hover:scale-110"
