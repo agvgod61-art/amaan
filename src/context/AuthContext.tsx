@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
-import { db, doc, getDoc, setDoc, serverTimestamp } from '../lib/firebase';
-import { User } from '@supabase/supabase-js';
+import { db, auth } from '../lib/firebase';
+import { doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
+import { User, onAuthStateChanged, signOut, sendPasswordResetEmail, updateEmail, updateProfile } from 'firebase/auth';
 
 interface AuthContextType {
-  user: User | null;
+  user: any | null; // Using any to represent extended user object
   loading: boolean;
   isBlocked: boolean;
   logout: () => Promise<void>;
@@ -16,15 +16,14 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
-    // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        checkUserStatus(session.user);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        checkUserStatus(firebaseUser);
       } else {
         setUser(null);
         setIsBlocked(false);
@@ -32,83 +31,86 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (session?.user) {
-          checkUserStatus(session.user);
-        } else {
-          setUser(null);
-          setIsBlocked(false);
-          setLoading(false);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
 
-  const checkUserStatus = async (supabaseUser: User) => {
+  const checkUserStatus = async (firebaseUser: User) => {
+    // Check if user is blocked or has incidents
     try {
-      const [blockedRes, incidentRes] = await Promise.all([
-        supabase.from('blocked_users').select('*').eq('id', supabaseUser.id).single(),
-        supabase.from('security_incidents').select('*').eq('id', supabaseUser.id).single()
-      ]);
+      const blockedRes = await getDocs(query(collection(db, 'blocked_users'), where('id', '==', firebaseUser.uid)));
+      const incidentRes = await getDocs(query(collection(db, 'security_incidents'), where('id', '==', firebaseUser.uid)));
       
-      if (blockedRes.data || incidentRes.data) {
+      if (!blockedRes.empty || !incidentRes.empty) {
         setIsBlocked(true);
-        await supabase.auth.signOut();
+        await signOut(auth);
         setUser(null);
-      } else {
-        setIsBlocked(false);
-        setUser(supabaseUser);
-        
-        // Ensure customer record and custom customer ID
-        try {
-          const customerDoc = await getDoc(doc(db, "customers", supabaseUser.id));
-          if (!customerDoc.exists()) {
-            const customerId = "CUS-" + Math.random().toString(36).substr(2, 6).toUpperCase();
-            await setDoc(doc(db, "customers", supabaseUser.id), {
-              id: supabaseUser.id,
-              customerId,
-              email: supabaseUser.email,
-              createdAt: serverTimestamp(),
-              lastLogin: serverTimestamp(),
-            });
-          } else {
-            // update last login time
-            await setDoc(doc(db, "customers", supabaseUser.id), {
-              ...customerDoc.data(),
-              lastLogin: serverTimestamp()
-            });
-          }
-        } catch (e) {
-          console.error("Error updating customer record:", e);
+        setLoading(false);
+        return;
+      }
+      
+      setIsBlocked(false);
+      
+      const enhancedUser: any = {
+        ...firebaseUser,
+        id: firebaseUser.uid, // Supabase compat
+        email: firebaseUser.email,
+      };
+      
+      setUser(enhancedUser);
+
+      // Ensure customer record and custom customer ID
+      try {
+        const customerDoc = await getDoc(doc(db, "customers", firebaseUser.uid));
+        if (!customerDoc.exists()) {
+          const customerId = "CUS-" + Math.random().toString(36).substr(2, 6).toUpperCase();
+          await setDoc(doc(db, "customers", firebaseUser.uid), {
+            id: firebaseUser.uid,
+            customer_id: customerId,
+            email: firebaseUser.email,
+            created_at: serverTimestamp(),
+            last_login: serverTimestamp(),
+          });
+        } else {
+          // update last login time
+          await setDoc(doc(db, "customers", firebaseUser.uid), {
+            ...customerDoc.data(),
+            last_login: serverTimestamp()
+          });
         }
+      } catch (e) {
+        console.error("Error updating customer record:", e);
       }
     } catch (err) {
-      setUser(supabaseUser);
+      console.error(err);
+      const enhancedUser: any = {
+        ...firebaseUser,
+        id: firebaseUser.uid,
+      };
+      setUser(enhancedUser);
     } finally {
       setLoading(false);
     }
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    await signOut(auth);
   };
   
   const resetPassword = async (email: string) => {
-    await supabase.auth.resetPasswordForEmail(email);
+    await sendPasswordResetEmail(auth, email);
   };
 
   const changeEmail = async (newEmail: string) => {
-    await supabase.auth.updateUser({ email: newEmail });
+    if (auth.currentUser) {
+      await updateEmail(auth.currentUser, newEmail);
+    }
   };
 
   const updateName = async (newName: string) => {
-    const { data: { user: updatedUser } } = await supabase.auth.updateUser({
-      data: { displayName: newName }
-    });
-    if (updatedUser) setUser(updatedUser);
+    if (auth.currentUser) {
+      await updateProfile(auth.currentUser, { displayName: newName });
+      setUser((prev: any) => ({ ...prev, displayName: newName }));
+    }
   };
 
   return (

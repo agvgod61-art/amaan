@@ -43,28 +43,14 @@ import { Navigate } from "react-router-dom";
 import { useState } from "react";
 import { useSettings } from "./context/SettingsContext";
 
-import { supabase } from "./lib/supabase";
-
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const [sessionState, setSessionState] = useState<{ checked: boolean, hasSession: boolean }>({ checked: false, hasSession: false });
+  const { user, loading } = useAuth();
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSessionState({ checked: true, hasSession: !!session });
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setSessionState({ checked: true, hasSession: !!session });
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  if (!sessionState.checked) {
+  if (loading) {
     return <div className="min-h-[50vh] flex items-center justify-center text-white text-xs uppercase tracking-widest animate-pulse">Loading...</div>;
   }
 
-  if (!sessionState.hasSession) {
+  if (!user) {
     return <Navigate to="/auth" replace />;
   }
 

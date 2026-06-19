@@ -1,5 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
   projectId: "cohesive-bulwark-pskkt",
@@ -11,5 +13,7 @@ const firebaseConfig = {
   measurementId: ""
 };
 
-const app = initializeApp(firebaseConfig);
+export const app = initializeApp(firebaseConfig);
 export const firestoreDb = getFirestore(app, "ai-studio-940ddde2-ba02-4398-8a41-6ac0e8e72adf");
+export const realStorage = getStorage(app);
+export const auth = getAuth(app);

@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertCircle, Loader2, Shield, Mail, Lock, Chrome } from 'lucide-react';
-import { supabase } from '../supabaseClient';
+import { auth } from '../lib/firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 
 export default function Auth() {
   const [isSignIn, setIsSignIn] = useState(false);
@@ -18,11 +19,9 @@ export default function Auth() {
     setSuccessMsg(null);
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google'
-      });
-      if (error) throw error;
-      // Note: OAuth redirects, so no navigate required here usually
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      navigate('/');
     } catch (err: any) {
       setError(err.message || 'An error occurred during Google Sign In.');
       setLoading(false);
@@ -37,22 +36,11 @@ export default function Auth() {
 
     try {
       if (isSignIn) {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        if (data.session) {
-          navigate('/');
-        }
+        await signInWithEmailAndPassword(auth, email, password);
+        navigate('/');
       } else {
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        
-        if (!data.session) {
-          setSuccessMsg("Check your email and confirm your account before logging in.");
-          setIsSignIn(true);
-          setPassword('');
-        } else {
-          navigate('/');
-        }
+        await createUserWithEmailAndPassword(auth, email, password);
+        navigate('/');
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred during authentication.');

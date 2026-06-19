@@ -15,8 +15,13 @@ CREATE TABLE public.customers (
 
 -- Enable RLS for customers
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view their own profile" ON public.customers;
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.customers;
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.customers;
+
 CREATE POLICY "Users can view their own profile" ON public.customers FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can update their own profile" ON public.customers FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can insert their own profile" ON public.customers FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- 2. Admins Table
 CREATE TABLE public.admins (

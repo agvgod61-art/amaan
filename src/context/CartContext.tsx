@@ -2,8 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product } from '../data/products';
 import { useAuth } from './AuthContext';
 import { db } from '../lib/firebase';
-import { supabase } from '../lib/supabase';
-import { collection, doc, setDoc, getDocs, deleteDoc, writeBatch } from '../lib/firebase';
+import { collection, doc, setDoc, getDocs, deleteDoc, query, where, writeBatch } from 'firebase/firestore';
 
 export interface CartItem {
   product: Product;
@@ -37,12 +36,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const loadFirebaseCart = async () => {
       if (user) {
         try {
-          const snapshot = await supabase.from('cart_items').select('*').eq('user_id', user.id);
-          if (snapshot.data && snapshot.data.length > 0) {
-            setCart(snapshot.data as CartItem[]);
+          const snapshot = await getDocs(query(collection(db, 'cart_items'), where('user_id', '==', user.id)));
+          if (!snapshot.empty) {
+            setCart(snapshot.docs.map(doc => doc.data() as CartItem));
           }
         } catch (err) {
-           console.error("Error loading cart from Supabase", err);
+           console.error("Error loading cart from Firebase", err);
         }
       }
     };
@@ -57,7 +56,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [cart, user]);
 
   const getDocId = (productId: string, size: string, color?: string) => {
-    return `${productId}_${size}${color ? `_${color}` : ''}`;
+    return `${user?.id}_${productId}_${size}${color ? `_${color}` : ''}`;
   };
 
   const addToCart = async (product: Product, size: string, quantity: number, color?: string) => {
@@ -81,16 +80,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         const existing = cart.find(item => item.product.id === product.id && item.size === size && item.color === color);
         const finalQty = existing ? Math.min(5, existing.quantity + quantity) : newQty;
         
-        await supabase.from('cart_items').upsert({
+        await setDoc(doc(db, 'cart_items', itemDocId), {
           id: itemDocId,
           user_id: user.id,
           product,
           size,
           color: color || null,
           quantity: finalQty
-        });
+        }, { merge: true });
       } catch (err) {
-        console.error("Error adding to Supabase cart", err);
+        console.error("Error adding to Firebase cart", err);
       }
     }
   };
@@ -117,15 +116,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         const itemDocId = getDocId(productId, size, color);
         const item = cart.find(i => i.product.id === productId && i.size === size && i.color === color);
         if (item) {
-          await supabase.from('cart_items').upsert({
+          await setDoc(doc(db, 'cart_items', itemDocId), {
             id: itemDocId,
             user_id: user.id,
             ...item,
             quantity: newQty
-          });
+          }, { merge: true });
         }
       } catch (err) {
-        console.error("Error updating Supabase cart", err);
+        console.error("Error updating Firebase cart", err);
       }
     }
   };
@@ -136,23 +135,26 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (user) {
       try {
         const itemDocId = getDocId(productId, size, color);
-        await supabase.from('cart_items').delete().eq('id', itemDocId);
+        await deleteDoc(doc(db, 'cart_items', itemDocId));
       } catch (err) {
-        console.error("Error removing from Supabase cart", err);
+        console.error("Error removing from Firebase cart", err);
       }
     }
   };
 
   const clearCart = async () => {
-    const currentCart = [...cart];
     setCart([]);
     
     if (user) {
       try {
-        // Just delete all the user's cart items
-        await supabase.from('cart_items').delete().eq('user_id', user.id);
+        const batch = writeBatch(db);
+        const snapshot = await getDocs(query(collection(db, 'cart_items'), where('user_id', '==', user.id)));
+        snapshot.forEach((document) => {
+          batch.delete(document.ref);
+        });
+        await batch.commit();
       } catch (err) {
-        console.error("Error clearing Supabase cart", err);
+        console.error("Error clearing Firebase cart", err);
       }
     }
   };

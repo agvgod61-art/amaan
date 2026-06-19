@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { db, handleFirestoreError, OperationType, isQuotaError, storage } from "../lib/firebase";
 import { doc, setDoc, collection, serverTimestamp, getDocs, updateDoc, deleteDoc, query, orderBy, getDoc, limit, getDocsFromCache } from "../lib/firebase";
-import { ref, deleteObject } from "../lib/firebase";
+import { ref, deleteObject } from "firebase/storage";
 import { Loader2, Database, AlertCircle, ShoppingBag, Package, Plus, Trash2, Edit2, X, UserPlus, ShieldCheck, RefreshCw, LayoutGrid, Settings, Shield, LineChart, FileText, PlayCircle, PackageCheck, CheckCircle2, XCircle, MessageCircle, Star, Maximize2, Upload, Link as LinkIcon } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { products as initialProducts } from "../data/products";
@@ -155,6 +155,11 @@ export default function Admin() {
   const handleDeleteReview = async (id: string) => {
     if (!window.confirm("Permanently delete this review?")) return;
     try {
+      const review = reviews.find(r => r.id === id);
+      if (review?.image) {
+        const { deleteFileFromStorage } = await import('../services/storageService');
+        await deleteFileFromStorage(review.image).catch(console.error);
+      }
       await deleteDoc(doc(db, "reviews", id));
       setReviews(reviews.filter(r => r.id !== id));
       setMessage("Review deleted successfully");
@@ -700,8 +705,8 @@ export default function Admin() {
     e.preventDefault();
     setStatus("loading");
     try {
-      const id = "PROD-" + Math.random().toString(36).substring(2, 9).toUpperCase();
-      const validImages = newProduct.images.filter(img => img.trim() !== "");
+      const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : "12345678-1234-1234-1234-123456789012";
+      const validImages = newProduct.images.filter((img: string) => img.trim() !== "");
       const productToSave = {
         ...newProduct,
         model: newProduct.model || "",
@@ -862,6 +867,30 @@ export default function Admin() {
     setStatus('loading');
     try {
       const snap = await getDocs(collection(db, "products"));
+      
+      const cleanupStorage = async (url: string) => {
+        if (!url) return;
+        if (!url.startsWith('http') && !url.startsWith('data:') && !url.startsWith('blob:')) {
+          try {
+             const { deleteFileFromStorage } = await import('../services/storageService');
+             await deleteFileFromStorage(url);
+          } catch (e) {}
+        }
+      };
+
+      for (const d of snap.docs) {
+        const product = d.data();
+        if (product.image) await cleanupStorage(product.image);
+        if (product.images && Array.isArray(product.images)) {
+          for (const imgUrl of product.images) await cleanupStorage(imgUrl);
+        }
+        if (product.colors && Array.isArray(product.colors)) {
+          for (const color of product.colors) {
+            if (color.image) await cleanupStorage(color.image);
+          }
+        }
+      }
+
       const deletePromises = snap.docs.map(d => deleteDoc(doc(db, "products", d.id)));
       await Promise.all(deletePromises);
       setDbProducts([]);
@@ -1739,10 +1768,12 @@ export default function Admin() {
                           {newProduct.videoUrl && (
                             <button 
                               type="button"
-                              onClick={() => {
+                              onClick={async () => {
                                 const win = window.open('', '_blank');
                                 if (win) {
-                                  const embedUrl = getEmbedUrl(newProduct.videoUrl);
+                                  const { getSignedImageUrl } = await import("../services/storageService");
+                                  const urlToUse = await getSignedImageUrl(newProduct.videoUrl);
+                                  const embedUrl = getEmbedUrl(urlToUse);
                                   const isEmbed = embedUrl && (
                                     embedUrl.includes('youtube.com') ||
                                     embedUrl.includes('youtu.be') ||
@@ -1753,7 +1784,7 @@ export default function Admin() {
                                     <body style="margin:0;background:black;display:flex;align-items:center;justify-center:center;height:100vh;">
                                       ${isEmbed 
                                         ? `<iframe src="${embedUrl}" width="100%" height="100%" frameborder="0" allowfullscreen></iframe>`
-                                        : `<video src="${newProduct.videoUrl}" controls width="100%" height="100%"></video>`
+                                        : `<video src="${urlToUse}" controls width="100%" height="100%"></video>`
                                       }
                                     </body>
                                   `);
@@ -2088,7 +2119,14 @@ export default function Admin() {
                     </div>
                     <p className="text-[8px] font-mono text-brand-metallic truncate flex-grow">{editingProduct.image}</p>
                     <button 
-                      onClick={() => setEditingProduct({...editingProduct, image: ""})}
+                      onClick={async () => {
+                        if (editingProduct.image) {
+                          const { deleteFileFromStorage } = await import('../services/storageService');
+                          await deleteFileFromStorage(editingProduct.image).catch(() => {});
+                        }
+                        await updateDoc(doc(db, "products", editingProduct.id), { image: "" });
+                        setEditingProduct({...editingProduct, image: ""});
+                      }}
                       className="text-red-500 hover:text-red-400"
                     >
                       <Trash2 size={12} />
@@ -2292,10 +2330,12 @@ export default function Admin() {
                     {editingProduct.videoUrl && (
                       <button 
                         type="button"
-                        onClick={() => {
+                        onClick={async () => {
                           const win = window.open('', '_blank');
                           if (win) {
-                            const embedUrl = getEmbedUrl(editingProduct.videoUrl);
+                            const { getSignedImageUrl } = await import("../services/storageService");
+                            const urlToUse = await getSignedImageUrl(editingProduct.videoUrl);
+                            const embedUrl = getEmbedUrl(urlToUse);
                             const isEmbed = embedUrl && (
                               embedUrl.includes('youtube.com') ||
                               embedUrl.includes('youtu.be') ||
@@ -2306,7 +2346,7 @@ export default function Admin() {
                               <body style="margin:0;background:black;display:flex;align-items:center;justify-center:center;height:100vh;">
                                 ${isEmbed 
                                   ? `<iframe src="${embedUrl}" width="100%" height="100%" frameborder="0" allowfullscreen></iframe>`
-                                  : `<video src="${editingProduct.videoUrl}" controls width="100%" height="100%"></video>`
+                                  : `<video src="${urlToUse}" controls width="100%" height="100%"></video>`
                                 }
                               </body>
                             `);
@@ -2376,8 +2416,13 @@ export default function Admin() {
                           <p className="text-[8px] font-mono text-brand-metallic truncate flex-grow italic">{img}</p>
                           <button 
                             type="button"
-                            onClick={() => {
+                            onClick={async () => {
                               const newImages = (editingProduct.images || []).filter((_: any, i: number) => i !== idx);
+                              if (img) {
+                                const { deleteFileFromStorage } = await import('../services/storageService');
+                                await deleteFileFromStorage(img).catch(() => {});
+                              }
+                              await updateDoc(doc(db, "products", editingProduct.id), { images: newImages });
                               setEditingProduct({...editingProduct, images: newImages});
                             }}
                             className="text-red-500 hover:text-red-400 p-1"
@@ -2436,8 +2481,13 @@ export default function Admin() {
                           )}
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={async () => {
                               const updatedColors = editingProduct.colors.filter((_: any, i: number) => i !== index);
+                              if (color.image) {
+                                const { deleteFileFromStorage } = await import('../services/storageService');
+                                await deleteFileFromStorage(color.image).catch(() => {});
+                              }
+                              await updateDoc(doc(db, "products", editingProduct.id), { colors: updatedColors });
                               setEditingProduct({ ...editingProduct, colors: updatedColors });
                             }}
                             className="text-brand-metallic hover:text-red-500 transition-colors p-1"
@@ -2563,10 +2613,12 @@ export default function Admin() {
                     <p className="text-[10px] text-brand-metallic uppercase tracking-widest">{product.type}</p>
                     {product.videoUrl && (
                       <button 
-                        onClick={() => {
+                        onClick={async () => {
                           const win = window.open('', '_blank');
                           if (win) {
-                            const embedUrl = getEmbedUrl(product.videoUrl);
+                            const { getSignedImageUrl } = await import("../services/storageService");
+                            const urlToUse = await getSignedImageUrl(product.videoUrl);
+                            const embedUrl = getEmbedUrl(urlToUse);
                             const isEmbed = embedUrl && (
                               embedUrl.includes('youtube.com') ||
                               embedUrl.includes('youtu.be') ||
@@ -2577,7 +2629,7 @@ export default function Admin() {
                               <body style="margin:0;background:black;display:flex;align-items:center;justify-center:center;height:100vh;">
                                 ${isEmbed 
                                   ? `<iframe src="${embedUrl}" width="100%" height="100%" frameborder="0" allowfullscreen></iframe>`
-                                  : `<video src="${product.videoUrl}" controls width="100%" height="100%"></video>`
+                                  : `<video src="${urlToUse}" controls width="100%" height="100%"></video>`
                                 }
                               </body>
                             `);
@@ -2797,20 +2849,20 @@ export default function Admin() {
                             <div className="px-2 py-0.5 border border-brand-accent/30 bg-brand-accent/10 flex items-center gap-1.5 shrink-0">
                               <Shield size={10} className="text-brand-accent" />
                               <span className="text-[9px] text-brand-accent font-bold uppercase tracking-widest">
-                                {customer.customerId || "N/A"}
+                                {customer.customer_id || customer.customerId || "N/A"}
                               </span>
                             </div>
                           </div>
                           
                           <div className="mt-2 text-[10px] uppercase font-mono tracking-widest text-brand-metallic">
-                            Joined: {customer.createdAt ? new Date(customer.createdAt.seconds ? customer.createdAt.seconds * 1000 : customer.createdAt).toLocaleString() : 'N/A'}
+                            Joined: {customer.created_at || customer.createdAt ? new Date((customer.created_at || customer.createdAt)?.seconds ? (customer.created_at || customer.createdAt).seconds * 1000 : (customer.created_at || customer.createdAt)).toLocaleString() : 'N/A'}
                           </div>
                         </div>
                       </div>
                       
                       <div className="flex flex-col items-end gap-2 md:gap-4 shrink-0">
                         <span className="text-[9px] uppercase tracking-widest font-bold border border-white/10 px-3 py-1 bg-white/5">
-                          Last Seen: {customer.lastLogin ? new Date(customer.lastLogin.seconds ? customer.lastLogin.seconds * 1000 : customer.lastLogin).toLocaleString() : 'N/A'}
+                          Last Seen: {customer.last_login || customer.lastLogin ? new Date((customer.last_login || customer.lastLogin)?.seconds ? (customer.last_login || customer.lastLogin).seconds * 1000 : (customer.last_login || customer.lastLogin)).toLocaleString() : 'N/A'}
                         </span>
                       </div>
                     </div>

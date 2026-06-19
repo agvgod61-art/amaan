@@ -2,9 +2,11 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { galleryImages as staticImages, GalleryImage } from "../data/gallery";
 import { Instagram, Fullscreen, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/firebase';
+import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { getEmbedUrl, isVideoUrl } from "../lib/mediaUtils";
 import StorageImage from '../components/StorageImage';
+import StorageVideo from '../components/StorageVideo';
 
 const Gallery = () => {
   const [dynamicImages, setDynamicImages] = useState<GalleryImage[]>([]);
@@ -18,19 +20,20 @@ const Gallery = () => {
     const fetchGallery = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase.from('gallery').select('*').order('createdAt', { ascending: false });
-        if (error) throw error;
+        const q = query(collection(db, 'gallery'), orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
         
         const isInvalidUrl = (url: string) => !url || !(url.startsWith('http') || url.startsWith('data:image'));
         
-        const fetched = (data || [])
+        const fetched = querySnapshot.docs
           .map(doc => {
+            const data = doc.data();
             return {
               id: doc.id,
-              url: doc.image,
-              model: doc.title,
-              description: doc.category,
-              type: doc.type || "image"
+              url: data.image,
+              model: data.title,
+              description: data.category,
+              type: data.type || "image"
             } as GalleryImage;
           })
           .filter(img => !isInvalidUrl(img.url));
@@ -173,8 +176,8 @@ const Gallery = () => {
                 className="relative max-w-5xl w-full h-full flex flex-col items-center justify-center pointer-events-none"
               >
                 {isVideoUrl(selectedImage.url) ? (
-                  selectedImage.url && selectedImage.url.startsWith('data:') ? (
-                    <video
+                  selectedImage.url && (selectedImage.url.startsWith('data:') || /\.(mp4|webm|ogg|mov)$/i.test(selectedImage.url.split('?')[0]) || selectedImage.url.includes('firebasestorage') || selectedImage.url.includes('supabase')) ? (
+                    <StorageVideo
                       src={selectedImage.url}
                       className="max-h-[80vh] w-auto object-contain pointer-events-auto"
                       controls

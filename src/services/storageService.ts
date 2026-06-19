@@ -1,9 +1,7 @@
-import { supabase } from '../lib/supabase';
+import { auth } from '../lib/firebase';
+import { realStorage } from '../lib/real-firebase';
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 
-/**
- * Uploads a file or blob to Supabase Storage and returns the path.
- * Includes progress tracking (mocked, as Supabase standard client doesn't heavily emit progress) and error handling.
- */
 export const uploadFileToStorage = async (
   file: File | Blob, 
   originalName: string,
@@ -11,24 +9,43 @@ export const uploadFileToStorage = async (
   itemId: string = 'new',
   onProgress?: (progress: number) => void
 ): Promise<string> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  const userId = user?.id || 'guest';
+  const user = auth.currentUser;
+  const userId = user?.uid || 'guest';
   
   const extension = originalName.split('.').pop() || 'tmp';
   const uuid = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString();
   const fileName = `${userId}/${featureName}/${itemId}/${uuid}.${extension}`;
   
   console.log(`[Storage] Starting upload of ${originalName} (${(file.size / 1024).toFixed(1)} KB)`);
-  if (onProgress) onProgress(0); // Supabase doesn't natively support progress tracking on JS client simply
-  
-  const { data, error } = await supabase.storage.from('app-files').upload(fileName, file, {
-    cacheControl: '3600',
-    upsert: false
-  });
+  if (onProgress) onProgress(0);
 
-  if (error) {
-    console.error("Supabase Storage Upload Error:", error);
-    console.warn("Falling back to Base64 Data URL due to storage error (likely RLS).");
+  try {
+    const storageRef = ref(realStorage, `app-files/${fileName}`);
+    const uploadTask = uploadBytesResumable(storageRef, file, {
+      cacheControl: 'public, max-age=31536000'
+    });
+
+    return await new Promise<string>((resolve, reject) => {
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          if (onProgress) onProgress(progress);
+        },
+        (error) => {
+          // Silent fallback to base64
+          console.log("Firebase Storage Upload Error, falling back to base64");
+          reject(error);
+        },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          console.log(`[Storage] Success: ${downloadURL}`);
+          resolve(downloadURL);
+        }
+      );
+    });
+  } catch (err: any) {
+    console.log("Storage upload falling back to Base64 Data URL.");
     try {
       return await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -40,39 +57,39 @@ export const uploadFileToStorage = async (
         reader.readAsDataURL(file);
       });
     } catch (fallbackError) {
-      if (error.message && error.message.includes("row-level security policy")) {
-        throw new Error(`Upload rejected. Please ensure your Supabase "app-files" storage bucket has RLS INSERT policies enabled for authenticated users.`);
-      }
-      throw new Error(error.message || "Upload failed. Please try again.");
+      throw new Error(err?.message || "Upload failed. Please try again.");
     }
   }
-  
-  if (onProgress) onProgress(100);
-
-  console.log(`[Storage] Success: ${data.path}`);
-  return data.path;
 };
 
 export const getSignedImageUrl = async (path: string): Promise<string> => {
   if (!path) return '';
-  if (path.startsWith('http') || path.startsWith('data:') || path.startsWith('blob:')) return path; // Already a URL
+  // If it's already a full URL or data URI, return as is
+  if (path.startsWith('http') || path.startsWith('data:') || path.startsWith('blob:')) return path;
   
-  const { data, error } = await supabase.storage.from('app-files').createSignedUrl(path, 60 * 60 * 24); // 24 hours
-  if (error) {
-    console.error("Error getting signed url for", path, error);
+  try {
+    const storageRef = ref(realStorage, path.startsWith('app-files/') ? path : `app-files/${path}`);
+    return await getDownloadURL(storageRef);
+  } catch (error) {
+    console.error("Error getting download url for", path, error);
     return path; // Fallback
   }
-  return data.signedUrl;
 };
 
 export const deleteFileFromStorage = async (path: string): Promise<void> => {
-    if (!path || path.startsWith('http') || path.startsWith('data:') || path.startsWith('blob:')) return;
-    
-    // Attempt deletion
-    const { error } = await supabase.storage.from('app-files').remove([path]);
-    if (error) {
-        console.error("Error deleting from storage:", error);
+  if (!path || path.startsWith('data:') || path.startsWith('blob:')) return;
+  
+  try {
+    // If it's a full Firebase Storage URL, we can create a ref from it
+    let storageRef;
+    if (path.startsWith('https://firebasestorage.googleapis.com')) {
+      storageRef = ref(realStorage, path);
     } else {
-        console.log(`[Storage] Deleted file: ${path}`);
+       storageRef = ref(realStorage, path.startsWith('app-files/') ? path : `app-files/${path}`);
     }
+    await deleteObject(storageRef);
+    console.log(`[Storage] Deleted file: ${path}`);
+  } catch (error) {
+    console.error("Error deleting from storage:", error);
+  }
 };

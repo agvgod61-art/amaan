@@ -15,6 +15,8 @@ import { doc, getDoc, getDocs, collection, query, where, orderBy, onSnapshot, ad
 import ErrorBoundary from "../components/ErrorBoundary";
 import { useSettings } from "../context/SettingsContext";
 import StorageImage from '../components/StorageImage';
+import StorageVideo from '../components/StorageVideo';
+import StorageFileLink from '../components/StorageFileLink';
 
 function ProductDetail() {
   const controls = useAnimation();  
@@ -596,7 +598,7 @@ function ProductDetail() {
                   );
                 } else {
                   return (
-                    <video 
+                    <StorageVideo 
                       src={product.videoUrl} 
                       controls 
                       autoPlay
@@ -1153,7 +1155,7 @@ function ProductDetail() {
                 </div>
                 
                 {product.pdfUrl && (
-                  <a 
+                  <StorageFileLink 
                     href={product.pdfUrl} 
                     target="_blank" 
                     rel="noopener noreferrer"
@@ -1161,7 +1163,7 @@ function ProductDetail() {
                   >
                     <ImageIcon size={16} /> 
                     <span>Download Product Catalog (PDF)</span>
-                  </a>
+                  </StorageFileLink>
                 )}
               </>
             ) : (
