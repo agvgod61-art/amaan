@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { db, handleFirestoreError, OperationType, isQuotaError, storage } from "../lib/firebase";
 import { doc, setDoc, collection, serverTimestamp, getDocs, updateDoc, deleteDoc, query, orderBy, getDoc, limit, getDocsFromCache } from "../lib/firebase";
 import { ref, deleteObject } from "firebase/storage";
-import { Loader2, Database, AlertCircle, ShoppingBag, Package, Plus, Trash2, Edit2, X, UserPlus, ShieldCheck, RefreshCw, LayoutGrid, Settings, Shield, LineChart, FileText, PlayCircle, PackageCheck, CheckCircle2, XCircle, MessageCircle, Star, Maximize2, Upload, Link as LinkIcon } from "lucide-react";
+import { Loader2, Database, AlertCircle, ShoppingBag, Package, Plus, Trash2, Edit2, X, UserPlus, Users, ShieldCheck, RefreshCw, LayoutGrid, Settings, Shield, LineChart, FileText, PlayCircle, PackageCheck, CheckCircle2, XCircle, MessageCircle, Star, Maximize2, Upload, Link as LinkIcon } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { products as initialProducts } from "../data/products";
 import { cn } from "../lib/utils";
@@ -46,6 +46,7 @@ export default function Admin() {
   const [searchQuery, setSearchQuery] = useState("");
   const [deletedHistory, setDeletedHistory] = useState<{id: string, name: string, time: string, price: number, type: string}[]>([]);
   const [adminList, setAdminList] = useState<any[]>([]);
+  const [analytics, setAnalytics] = useState<{totalViews: number, uniqueVisits: number}>({ totalViews: 0, uniqueVisits: 0 });
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [refreshCountdown, setRefreshCountdown] = useState(300);
   const [newCategory, setNewCategory] = useState({ name: "", slug: "", description: "", order: 0, image: "" });
@@ -102,6 +103,11 @@ export default function Admin() {
 
   useEffect(() => {
     if (isAuthorized) {
+      if (activeTab === "dashboard") {
+        if (dbProducts.length === 0) fetchProducts();
+        if (categories.length === 0) fetchCategories();
+        fetchAnalytics();
+      }
       if (activeTab === "orders" && orders.length === 0) fetchOrders();
       if (activeTab === "products" && dbProducts.length === 0) fetchProducts();
       if (activeTab === "categories" && categories.length === 0) fetchCategories();
@@ -115,6 +121,20 @@ export default function Admin() {
       if (activeTab === "customers" && customers.length === 0) fetchCustomers();
     }
   }, [isAuthorized, activeTab]);
+
+  const fetchAnalytics = async () => {
+    try {
+      const snap = await getDoc(doc(db, "analytics", "traffic"));
+      if (snap.exists()) {
+        setAnalytics({
+          totalViews: snap.data().totalViews || 0,
+          uniqueVisits: snap.data().uniqueVisits || 0
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch analytics", err);
+    }
+  };
 
   const fetchCustomers = async () => {
     setStatus("loading");
@@ -1192,47 +1212,57 @@ export default function Admin() {
 
         {/* Dashboard Overview */}
         {activeTab === "dashboard" && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-white/5 border border-white/10 p-8 hover:border-brand-accent/50 transition-colors group">
-              <LineChart className="text-brand-accent mb-4 group-hover:scale-110 transition-transform" size={24} />
-              <h3 className="text-brand-metallic text-[10px] uppercase tracking-widest font-bold mb-2">Total System Orders</h3>
-              <p className="text-3xl font-display font-bold">LIVE</p>
-              <button onClick={() => setActiveTab("orders")} className="mt-4 text-[9px] uppercase tracking-widest border-b border-brand-accent">View All</button>
-            </div>
-            <div className="bg-white/5 border border-white/10 p-8 hover:border-brand-accent/50 transition-colors group">
-              <PackageCheck className="text-brand-accent mb-4 group-hover:scale-110 transition-transform" size={24} />
-              <h3 className="text-brand-metallic text-[10px] uppercase tracking-widest font-bold mb-2">Product Catalog</h3>
-              <p className="text-3xl font-display font-bold">{dbProducts.length || initialProducts.length}</p>
-              <button onClick={() => setActiveTab("products")} className="mt-4 text-[9px] uppercase tracking-widest border-b border-brand-accent">Manage Catalog</button>
-            </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-12">
+              <div className="bg-white/5 border border-white/10 p-8 hover:border-brand-accent/50 transition-colors group">
+                <Users className="text-brand-accent mb-4 group-hover:scale-110 transition-transform" size={24} />
+                <h3 className="text-brand-metallic text-[10px] uppercase tracking-widest font-bold mb-2">Public Visitors</h3>
+                <p className="text-3xl font-display font-bold">{analytics.uniqueVisits}</p>
+                <div className="mt-4 flex gap-2 text-[9px] uppercase tracking-widest text-brand-metallic">
+                  <span>{analytics.totalViews} TOTAL VIEWS</span>
+                </div>
+              </div>
+              <div className="bg-white/5 border border-white/10 p-8 hover:border-brand-accent/50 transition-colors group">
+                <LineChart className="text-brand-accent mb-4 group-hover:scale-110 transition-transform" size={24} />
+                <h3 className="text-brand-metallic text-[10px] uppercase tracking-widest font-bold mb-2">Total System Orders</h3>
+                <p className="text-3xl font-display font-bold">LIVE</p>
+                <button onClick={() => setActiveTab("orders")} className="mt-4 text-[9px] uppercase tracking-widest border-b border-brand-accent">View All</button>
+              </div>
+              <div className="bg-white/5 border border-white/10 p-8 hover:border-brand-accent/50 transition-colors group">
+                <PackageCheck className="text-brand-accent mb-4 group-hover:scale-110 transition-transform" size={24} />
+                <h3 className="text-brand-metallic text-[10px] uppercase tracking-widest font-bold mb-2">Product Catalog</h3>
+                <p className="text-3xl font-display font-bold">{dbProducts.length || initialProducts.length}</p>
+                <button onClick={() => setActiveTab("products")} className="mt-4 text-[9px] uppercase tracking-widest border-b border-brand-accent">Manage Catalog</button>
+              </div>
               <div className="bg-white/5 border border-white/10 p-8 hover:border-brand-accent/50 transition-colors group relative">
-              <LayoutGrid className="text-brand-accent mb-4 group-hover:scale-110 transition-transform" size={24} />
-              <h3 className="text-brand-metallic text-[10px] uppercase tracking-widest font-bold mb-2">Categories</h3>
-              <p className="text-3xl font-display font-bold">{categories.length}</p>
-              <div className="flex gap-4 mt-4">
-                <button onClick={() => setActiveTab("categories")} className="text-[9px] uppercase tracking-widest border-b border-brand-accent">Manage Categories</button>
-                {categories.length > 0 && (
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      clearCategories();
-                    }} 
-                    className="text-[9px] uppercase tracking-widest text-red-500 hover:text-red-400"
-                  >
-                    Delete All
-                  </button>
-                )}
+                <LayoutGrid className="text-brand-accent mb-4 group-hover:scale-110 transition-transform" size={24} />
+                <h3 className="text-brand-metallic text-[10px] uppercase tracking-widest font-bold mb-2">Categories</h3>
+                <p className="text-3xl font-display font-bold">{categories.length}</p>
+                <div className="flex gap-4 mt-4">
+                  <button onClick={() => setActiveTab("categories")} className="text-[9px] uppercase tracking-widest border-b border-brand-accent">Manage Categories</button>
+                  {categories.length > 0 && (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        clearCategories();
+                      }} 
+                      className="text-[9px] uppercase tracking-widest text-red-500 hover:text-red-400"
+                    >
+                      Delete All
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="bg-white/5 border border-white/10 p-8 hover:border-brand-accent/50 transition-colors group relative">
+                <MessageCircle className="text-brand-accent mb-4 group-hover:scale-110 transition-transform" size={24} />
+                <h3 className="text-brand-metallic text-[10px] uppercase tracking-widest font-bold mb-2">Customer Reviews</h3>
+                <p className="text-3xl font-display font-bold">{reviews.length}</p>
+                <div className="flex gap-4 mt-4">
+                  <button onClick={() => setActiveTab("reviews")} className="text-[9px] uppercase tracking-widest border-b border-brand-accent">Moderate Reviews</button>
+                </div>
               </div>
             </div>
-            <div className="bg-white/5 border border-white/10 p-8 hover:border-brand-accent/50 transition-colors group relative">
-              <MessageCircle className="text-brand-accent mb-4 group-hover:scale-110 transition-transform" size={24} />
-              <h3 className="text-brand-metallic text-[10px] uppercase tracking-widest font-bold mb-2">Customer Reviews</h3>
-              <p className="text-3xl font-display font-bold">{reviews.length}</p>
-              <div className="flex gap-4 mt-4">
-                <button onClick={() => setActiveTab("reviews")} className="text-[9px] uppercase tracking-widest border-b border-brand-accent">Moderate Reviews</button>
-              </div>
-            </div>
-          </div>
+          </>
         )}
 
         {/* Categories Management */}
@@ -1495,7 +1525,7 @@ export default function Admin() {
                         </td>
                         <td className="py-4 text-brand-metallic text-xs">
                           <div className="flex items-center justify-between">
-                            {order.created_at}
+                            {order.created_at?.seconds ? new Date(order.created_at.seconds * 1000).toLocaleDateString() : typeof order.created_at === 'string' ? order.created_at : ''}
                             <button 
                               onClick={() => handleDeleteOrder(order.id)}
                               className="opacity-0 group-hover:opacity-100 p-2 text-brand-metallic hover:text-red-500 transition-all ml-4"

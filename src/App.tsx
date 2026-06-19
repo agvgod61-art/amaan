@@ -29,6 +29,7 @@ import Profile from "./pages/Profile";
 import OrderHistory from "./pages/OrderHistory";
 import TrackOrder from "./pages/TrackOrder";
 import NotFound from "./pages/NotFound";
+import { AnalyticsTracker } from "./components/AnalyticsTracker";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -123,6 +124,7 @@ export default function App() {
                 <CartProvider>
                   <Router>
                     <ScrollToTop />
+                    <AnalyticsTracker />
                     <QuotaBanner />
                     <AccessControl>
                       <Layout>
