@@ -688,7 +688,7 @@ export default function Admin() {
       setDbProducts(dbProducts.map(p => p.id === editingProduct.id ? { ...editingProduct, images: validImages } : p));
       setEditingProduct(null);
       setStatus("idle");
-      setMessage("Product updated successfully");
+      setMessage("PRODUCT settings updated successfully");
     } catch (err) {
       setStatus("error");
       try {
@@ -750,7 +750,7 @@ export default function Admin() {
         colors: []
       });
       setStatus("idle");
-      setMessage("Product added successfully");
+      setMessage("PRODUCT settings updated successfully");
     } catch (err) {
       setStatus("error");
       try {
@@ -1173,15 +1173,15 @@ export default function Admin() {
         {/* Global Feedback Banner */}
         {message && (
           <div className={cn(
-            "mb-8 p-4 border flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-300",
-            status === 'error' ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-brand-accent/10 border-brand-accent/20 text-brand-accent"
+            "fixed top-6 left-1/2 -translate-x-1/2 z-[100] min-w-[300px] shadow-2xl p-4 border flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-300 backdrop-blur-md rounded-md",
+            status === 'error' ? "bg-red-950/80 border-red-500/50 text-red-400" : "bg-black/90 border-brand-accent/50 text-brand-accent"
           )}>
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-3">
                 {status === 'error' ? <AlertCircle size={16} /> : <CheckCircle2 size={16} />}
                 <p className="text-[10px] font-bold uppercase tracking-widest">{message}</p>
               </div>
-              <button onClick={() => setMessage("")} className="hover:opacity-70 transition-opacity">
+              <button onClick={() => setMessage("")} className="hover:opacity-70 transition-opacity ml-6 bg-white/10 rounded-full p-1">
                 <X size={14} />
               </button>
             </div>

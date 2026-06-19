@@ -133,8 +133,8 @@ export default function ImageUpload({ onUploadComplete, label = "Upload Image", 
                  src={preview} 
                  alt="Preview" 
                  className={cn(
-                   "w-full h-full object-cover contrast-125 transition-all duration-500",
-                   uploading ? "opacity-20 scale-105" : "opacity-50"
+                   "w-full h-full object-cover transition-all duration-500",
+                   uploading ? "opacity-30 scale-105 blur-sm" : "opacity-100"
                  )}
                  referrerPolicy="no-referrer"
                />
