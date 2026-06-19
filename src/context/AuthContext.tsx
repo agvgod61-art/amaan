@@ -37,10 +37,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkUserStatus = async (firebaseUser: User) => {
     // Check if user is blocked or has incidents
     try {
-      const blockedRes = await getDocs(query(collection(db, 'blocked_users'), where('id', '==', firebaseUser.uid)));
-      const incidentRes = await getDocs(query(collection(db, 'security_incidents'), where('id', '==', firebaseUser.uid)));
+      const blockedRes = await getDoc(doc(db, 'blocked_users', firebaseUser.uid));
+      const incidentRes = await getDoc(doc(db, 'security_incidents', firebaseUser.uid));
       
-      if (!blockedRes.empty || !incidentRes.empty) {
+      if (blockedRes.exists() || incidentRes.exists()) {
         setIsBlocked(true);
         await signOut(auth);
         setUser(null);

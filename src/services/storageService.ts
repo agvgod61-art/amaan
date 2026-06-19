@@ -26,21 +26,35 @@ export const uploadFileToStorage = async (
     });
 
     return await new Promise<string>((resolve, reject) => {
+      // Timeout to catch CORS issues or hanging uploads
+      const timeoutId = setTimeout(() => {
+        console.warn("Firebase Storage upload timed out (likely CORS issue), canceling...");
+        uploadTask.cancel();
+      }, 15000);
+
       uploadTask.on(
         'state_changed',
         (snapshot) => {
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          if (progress > 0) clearTimeout(timeoutId); // We are transferring data
           if (onProgress) onProgress(progress);
         },
         (error) => {
+          clearTimeout(timeoutId);
           // Silent fallback to base64
-          console.log("Firebase Storage Upload Error, falling back to base64");
+          console.log("Firebase Storage Upload Error, falling back to base64", error);
           reject(error);
         },
         async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          console.log(`[Storage] Success: ${downloadURL}`);
-          resolve(downloadURL);
+          clearTimeout(timeoutId);
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            console.log(`[Storage] Success: ${downloadURL}`);
+            resolve(downloadURL);
+          } catch(err) {
+            console.error("Error getting download URL", err);
+            reject(err);
+          }
         }
       );
     });

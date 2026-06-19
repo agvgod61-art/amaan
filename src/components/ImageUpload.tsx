@@ -17,6 +17,7 @@ interface ImageUploadProps {
 
 export default function ImageUpload({ onUploadComplete, label = "Upload Image", className, initialUrl, accept = "image/*", featureName = "general", itemId = "new" }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -72,6 +73,7 @@ export default function ImageUpload({ onUploadComplete, label = "Upload Image", 
     }
 
     setUploading(true);
+    setProgress(0);
     setError(null);
     setSuccess(false);
 
@@ -86,11 +88,17 @@ export default function ImageUpload({ onUploadComplete, label = "Upload Image", 
       // Import upload service dynamically to avoid circular deps or just top level
       const { uploadFileToStorage } = await import('../services/storageService');
       
-      const url = await uploadFileToStorage(fileToUpload, file.name, featureName, itemId);
+      const url = await uploadFileToStorage(
+        fileToUpload, 
+        file.name, 
+        featureName, 
+        itemId,
+        (p) => setProgress(Math.round(p))
+      );
       onUploadComplete(url);
       setSuccess(true);
-      // Removed setPreview(url) so we keep the localUrl as preview for better UX
       setUploading(false);
+      setProgress(100);
     } catch (err: any) {
       setError(err.message || "Failed to process image");
       setUploading(false);
@@ -131,9 +139,10 @@ export default function ImageUpload({ onUploadComplete, label = "Upload Image", 
                  referrerPolicy="no-referrer"
                />
                 {uploading && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 backdrop-blur-[2px]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 backdrop-blur-[2px]">
                     <div className="w-8 h-8 border-2 border-brand-accent border-t-transparent rounded-full animate-spin mb-3" />
-                    <span className="text-[8px] text-white uppercase tracking-[0.3em] font-bold animate-pulse">Processing Asset</span>
+                    <span className="text-[10px] text-brand-accent font-mono font-bold mb-1">{progress}%</span>
+                    <span className="text-[8px] text-white uppercase tracking-[0.3em] font-bold animate-pulse">Uploading Asset</span>
                   </div>
                 )}
             </div>
@@ -164,9 +173,9 @@ export default function ImageUpload({ onUploadComplete, label = "Upload Image", 
             <div className="text-center">
               <p className={cn(
                  "text-[10px] font-bold uppercase tracking-widest",
-                 success ? "text-green-500" : error ? "text-red-500" : "text-white"
+                 success ? "text-green-500 z-20 relative bg-black/50 px-2 py-1 rounded backdrop-blur-sm" : error ? "text-red-500" : "text-white"
               )}>
-                {uploading ? "" : success ? "" : error ? "Failed" : "Select Image"}
+                {uploading ? "" : success ? "UPLOAD SUCCESSFUL" : error ? "Failed" : "Select Image"}
               </p>
               {error && <p className="text-[7px] text-red-500 uppercase mt-1 max-w-[200px] mx-auto leading-tight italic font-bold">{error}</p>}
             </div>

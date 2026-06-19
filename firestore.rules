@@ -19,6 +19,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return request.auth != null && 
+             request.auth.token.email != null &&
              (request.auth.token.email == 'yamaan115@gmail.com' || 
               request.auth.token.admin == true ||
               exists(/databases/$(database)/documents/admins/$(request.auth.token.email.lower()))) && 
@@ -209,20 +210,23 @@ service cloud.firestore {
       }
     }
     match /blocked_users/{uid} {
-      allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow get, list: if isAdmin();
       allow write: if isAdmin();
     }
     
     // Security Incidents (Tripwire)
     match /security_incidents/{uid} {
       allow create: if request.auth != null && request.auth.uid == uid && incoming().violation != null;
-      allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow get, list: if isAdmin();
       allow write: if isAdmin();
     }
     
     // Customers
     match /customers/{customerId} {
-      allow read, write: if isAdmin() || (request.auth != null && request.auth.uid == customerId);
+      allow read, write: if request.auth != null && request.auth.uid == customerId;
+      allow get, list: if isAdmin();
     }
 
     // Notes
