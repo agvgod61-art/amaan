@@ -1,5 +1,5 @@
-import { Link, useLocation } from "react-router-dom";
-import { ShoppingBag, Menu, X, Heart, User, LogOut, Instagram, Youtube } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ShoppingBag, Menu, X, Heart, User, LogOut, Instagram, Youtube, Search, Mail } from "lucide-react";
 import { useState, useEffect } from "react";
 import React from "react";
 import { cn } from "../lib/utils";
@@ -63,7 +63,10 @@ function NewsletterForm() {
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const location = useLocation();
+  const navigate = useNavigate();
   const { totalItems } = useCart();
   const { totalWishlistItems } = useWishlist();
   const { user, logout } = useAuth();
@@ -89,13 +92,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     ...(isAdmin ? [{ name: "Admin", path: "/admin" }] : [])
   ];
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/shop?q=${encodeURIComponent(searchQuery)}`);
+      setSearchQuery("");
+      setIsSearchOpen(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col font-sans selection:bg-brand-accent selection:text-white">
-      {/* Free Shipping Banner */}
-      <div className="bg-brand-gray text-brand-metallic text-xs uppercase tracking-widest py-2 text-center border-b border-white/5 relative z-50">
-        Free Shipping Available Across India
-      </div>
-
       {/* Navbar */}
       <header className={cn(
         "sticky top-0 z-40 transition-all duration-300 border-b",
@@ -135,6 +142,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
           {/* Actions */}
           <div className="flex items-center gap-6">
+            <button 
+              onClick={() => setIsSearchOpen(!isSearchOpen)} 
+              className="relative group text-brand-metallic hover:text-white transition-colors"
+            >
+              <Search size={20} />
+            </button>
             <Link to="/wishlist" className="relative group text-brand-metallic hover:text-white transition-colors">
               <Heart size={20} />
               {totalWishlistItems > 0 && (
@@ -183,6 +196,37 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         </div>
+
+        {/* Search Bar Dropdown */}
+        {isSearchOpen && (
+          <div className="absolute top-full left-0 w-full bg-brand-black/95 backdrop-blur-xl border-b border-white/5 py-4 px-6 shadow-2xl z-50">
+            <div className="max-w-7xl mx-auto flex items-center justify-center">
+              <form onSubmit={handleSearch} className="w-full max-w-2xl relative flex items-center">
+                <Search size={20} className="absolute left-4 text-brand-metallic" />
+                <input 
+                  type="text" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search products..." 
+                  autoFocus
+                  className="w-full bg-white/5 border border-white/10 rounded-none px-12 py-4 text-white placeholder:text-brand-metallic/50 uppercase tracking-widest focus:outline-none focus:border-brand-accent/50"
+                />
+                {searchQuery && (
+                   <button 
+                     type="button"
+                     onClick={() => setSearchQuery("")}
+                     className="absolute right-20 text-brand-metallic hover:text-white"
+                   >
+                     <X size={16} />
+                   </button>
+                )}
+                <button type="submit" className="absolute right-4 text-brand-accent hover:text-brand-accent/80 font-bold uppercase tracking-widest text-xs transition-colors">
+                  Search
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Mobile Nav */}
         {isMenuOpen && (
@@ -290,6 +334,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div className="flex flex-col gap-2">
             <p>&copy; {new Date().getFullYear()} {settings.siteName}. All rights reserved.</p>
             <div className="flex items-center justify-center md:justify-start gap-4 mt-2">
+              <a href="mailto:agvgod@gmail.com" className="text-brand-metallic hover:text-white transition-colors flex items-center gap-2">
+                <Mail size={14} /> <span>agvgod@gmail.com</span>
+              </a>
               <a href="https://www.instagram.com/agvgod?igsh=Znp4NDBtcWI4eXhm" target="_blank" rel="noopener noreferrer" className="text-brand-metallic hover:text-white transition-colors flex items-center gap-2">
                 <Instagram size={14} /> <span>Instagram</span>
               </a>

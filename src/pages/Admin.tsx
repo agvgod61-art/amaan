@@ -11,6 +11,8 @@ import ImageUpload from "../components/ImageUpload";
 import { getEmbedUrl } from "../lib/mediaUtils";
 import StorageImage from '../components/StorageImage';
 
+import AdminDashboardCharts from "../components/AdminDashboardCharts";
+
 type AdminTab = "dashboard" | "orders" | "products" | "categories" | "admins" | "media" | "setup" | "site" | "reviews" | "security" | "customers";
 
 export default function Admin() {
@@ -106,6 +108,7 @@ export default function Admin() {
       if (activeTab === "dashboard") {
         if (dbProducts.length === 0) fetchProducts();
         if (categories.length === 0) fetchCategories();
+        if (customers.length === 0) fetchCustomers();
         fetchAnalytics();
       }
       if (activeTab === "orders" && orders.length === 0) fetchOrders();
@@ -1262,6 +1265,8 @@ export default function Admin() {
                 </div>
               </div>
             </div>
+
+            <AdminDashboardCharts customers={customers} />
           </>
         )}
 
