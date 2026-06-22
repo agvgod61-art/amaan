@@ -29,7 +29,7 @@ export default function ModernHome() {
       {/* Header Top */}
       <div className="bg-[#0f0f1a] text-white py-2 px-6 text-[11px] uppercase tracking-widest font-bold flex justify-between items-center">
         <div className="flex items-center gap-4">
-           <span>Free Shipping on Orders Over ₹5000</span>
+           <span>Premium Riding Gear</span>
            <span className="hidden md:inline text-white/30">|</span>
            <span className="hidden md:inline">Certified Safety Standards (ISI/ECE)</span>
         </div>

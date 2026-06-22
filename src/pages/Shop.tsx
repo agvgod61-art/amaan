@@ -9,6 +9,8 @@ import { useCart } from "../context/CartContext";
 import { db, isQuotaError } from "../lib/firebase";
 import { collection, getDocs, query, limit, startAfter, orderBy, where, getDocsFromCache } from "../lib/firebase";
 import StorageImage from '../components/StorageImage';
+import SEO from '../components/SEO';
+import { useSettings } from "../context/SettingsContext";
 
 // Separate Product Card Component for Hover Spin Logic
 const ProductCard = ({ 
@@ -157,6 +159,7 @@ const ProductCard = ({
 };
 
 export default function Shop() {
+  const { settings } = useSettings();
   const navigate = useNavigate();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { addToCart, buyNow } = useCart();
@@ -396,8 +399,16 @@ export default function Shop() {
     }
   };
 
+  const seoTitle = selectedTypes.length > 0 
+    ? `${selectedTypes.join(", ")} | Shop` 
+    : `Shop Collection`;
+    
   return (
     <div className="pt-8 pb-24 px-6 max-w-7xl mx-auto w-full">
+      <SEO 
+        title={`${seoTitle} - ${settings.siteName}`}
+        description={`Explore our collection of high-performance motorcycles, helmets, and accessories.`}
+      />
       <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tighter uppercase mb-4">The Collection</h1>

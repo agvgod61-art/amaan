@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { products as staticProducts, Product } from "../data/products";
+import SEO from '../components/SEO';
 import { Helmet } from "react-helmet-async";
 import { ShieldCheck, Star, Clock, ArrowLeft, CheckCircle2, ChevronRight, ChevronLeft, Share, Heart, Truck, Lock, Award, X as CloseIcon, Ruler, Info, Instagram, Facebook, MessageCircle, Copy, Check, Grid, Image as ImageIcon, ArrowRight, RefreshCw, Play, Loader2, Twitter, Send, Linkedin, MoreHorizontal, ShoppingBag } from "lucide-react";
 import { cn } from "../lib/utils";
@@ -386,14 +387,13 @@ function ProductDetail() {
 
   return (
     <div className="pt-8 pb-24 px-6 max-w-7xl mx-auto w-full relative">
-      <Helmet>
-        <title>{product.name} | {settings.siteName}</title>
-        <meta name="description" content={product.description.substring(0, 160)} />
-        <meta property="og:title" content={`${product.name} - Premium Riding Gear`} />
-        <meta property="og:description" content={product.description.substring(0, 160)} />
-        <meta property="og:image" content={product.image} />
-        <meta property="og:type" content="product" />
-      </Helmet>
+      <SEO 
+        title={`${product.name} | ${settings.siteName}`}
+        description={product.description.substring(0, 160)}
+        image={product.image}
+        url={window.location.href}
+        type="product"
+      />
 
       {/* Subtle Toast Notification */}
       <AnimatePresence>

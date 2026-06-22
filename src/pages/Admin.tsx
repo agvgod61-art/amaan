@@ -125,6 +125,18 @@ export default function Admin() {
     }
   }, [isAuthorized, activeTab]);
 
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (isAuthorized && activeTab === "dashboard") {
+      interval = setInterval(() => {
+        fetchAnalytics();
+      }, 60000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isAuthorized, activeTab]);
+
   const fetchAnalytics = async () => {
     try {
       const snap = await getDoc(doc(db, "analytics", "traffic"));

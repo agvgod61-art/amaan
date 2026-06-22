@@ -1,9 +1,14 @@
 import { Phone, MapPin, MessageCircle, CreditCard, Mail, Instagram } from "lucide-react";
 import { WhatsAppIcon } from "../components/WhatsAppIcon";
+import SEO from '../components/SEO';
 
 export default function Contact() {
   return (
     <div className="pt-16 pb-24 px-6 max-w-7xl mx-auto w-full">
+      <SEO 
+        title="Contact Us | AGV God"
+        description="Whether you need setup advice, sizing help, or tracking an order, our pit crew is standing by."
+      />
       <div className="text-center max-w-3xl mx-auto mb-16">
         <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tighter uppercase mb-6">Contact Command</h1>
         <p className="text-brand-metallic text-lg">

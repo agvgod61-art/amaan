@@ -6,7 +6,6 @@ export const getStoreContext = (siteName: string = "AVG GOD") => {
   const policies = `
 Shipping:
 - Delivery in 3-7 business days.
-- Free shipping across India for helmets.
 - Inspection required upon delivery.
 
 Returns & Exchanges:

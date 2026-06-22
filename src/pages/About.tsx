@@ -1,11 +1,16 @@
 import { useSettings } from "../context/SettingsContext";
 import StorageImage from '../components/StorageImage';
+import SEO from '../components/SEO';
 
 export default function About() {
   const { settings } = useSettings();
   
   return (
     <div className="flex flex-col">
+      <SEO 
+        title={`About Us | ${settings.siteName}`}
+        description="Learn more about our legacy, engineered for the streets and born on the racetrack."
+      />
       {/* Hero Section */}
       <section className="relative min-h-[60vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">

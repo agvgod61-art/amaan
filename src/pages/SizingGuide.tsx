@@ -1,8 +1,11 @@
 import React from "react";
 import { Ruler, ShieldCheck, BadgeCheck, AlertCircle } from "lucide-react";
 import { cn } from "../lib/utils";
+import SEO from '../components/SEO';
+import { useSettings } from "../context/SettingsContext";
 
 export default function SizingGuide() {
+  const { settings } = useSettings();
   const sizeChart = [
     { size: "XS", cm: "53 – 54", in: "20 ⅞ – 21 ¼" },
     { size: "S", cm: "55 – 56", in: "21 ⅝ – 22" },
@@ -14,6 +17,10 @@ export default function SizingGuide() {
 
   return (
     <div className="bg-brand-black min-h-screen pt-32 pb-24 px-6">
+      <SEO 
+        title={`Sizing Guide | ${settings.siteName}`}
+        description="Find the perfect fit with our comprehensive helmet sizing setup guide."
+      />
       <div className="max-w-4xl mx-auto">
         <header className="mb-16 text-center">
           <div className="flex items-center justify-center gap-2 mb-4">

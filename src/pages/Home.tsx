@@ -13,6 +13,7 @@ import { useSettings } from "../context/SettingsContext";
 import { Edit2, X as CloseIcon } from "lucide-react";
 import { auth } from "../lib/firebase";
 import StorageImage from '../components/StorageImage';
+import SEO from '../components/SEO';
 
 interface GalleryConfig {
   wideImage: string;
@@ -130,6 +131,10 @@ export default function Home() {
 
   return (
     <div className="flex flex-col">
+      <SEO 
+        title={`${settings.siteName} - Official Site`}
+        description={settings.heroSubtitle}
+      />
       {/* 1. HERO BANNER - Recipe 2 (Editorial) & 11 (Split Layout) inspiration */}
       <section className="relative min-h-[90vh] flex items-center overflow-hidden border-b border-white/5">
         <div className="absolute inset-0 z-0">

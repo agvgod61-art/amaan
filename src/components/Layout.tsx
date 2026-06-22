@@ -103,6 +103,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col font-sans selection:bg-brand-accent selection:text-white">
+      {/* Global Announcement Banner */}
+      <div className="bg-brand-accent text-white py-2 px-6 text-[10px] sm:text-[11px] uppercase tracking-widest font-bold text-center">
+        All India Shipping Available
+      </div>
+      
       {/* Navbar */}
       <header className={cn(
         "sticky top-0 z-40 transition-all duration-300 border-b",

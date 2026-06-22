@@ -2,6 +2,7 @@ import React from "react";
 import { Truck, RotateCcw, ShieldAlert, BadgeCheck, AlertTriangle } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useSettings } from "../context/SettingsContext";
+import SEO from '../components/SEO';
 
 const PolicySection = ({ 
   icon: Icon, 
@@ -32,6 +33,10 @@ export default function Policies() {
   
   return (
     <div className="bg-brand-black min-h-screen pt-32 pb-24 px-6 overflow-hidden relative">
+      <SEO 
+        title={`Store Policies | ${settings.siteName}`}
+        description="Shipping, returns, and terms of service policies for our store."
+      />
       {/* Background Decorative Elements */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-accent/5 rounded-full blur-[120px] -z-10 translate-x-1/2 -translate-y-1/2" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-brand-accent/5 rounded-full blur-[120px] -z-10 -translate-x-1/2 translate-y-1/2" />
@@ -57,7 +62,7 @@ export default function Policies() {
             <ul className="space-y-3 list-none">
               <li className="flex gap-3">
                 <BadgeCheck size={16} className="text-brand-accent shrink-0 mt-0.5" />
-                <span><strong>Standard Delivery:</strong> Most orders are delivered within 3 to 7 business days. We provide free shipping across India for all helmet purchases.</span>
+                <span><strong>Standard Delivery:</strong> Most orders are delivered within 3 to 7 business days.</span>
               </li>
               <li className="flex gap-3">
                 <BadgeCheck size={16} className="text-brand-accent shrink-0 mt-0.5" />
