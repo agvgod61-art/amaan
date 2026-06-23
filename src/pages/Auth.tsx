@@ -43,9 +43,11 @@ export default function Auth() {
     setSuccessMsg(null);
     setLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      navigate('/');
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+      });
+      if (error) throw error;
+      // Note: supabase handles the redirect automatically
     } catch (err: any) {
       setError(err.message || 'An error occurred during Google Sign In.');
       setLoading(false);
