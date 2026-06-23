@@ -178,9 +178,53 @@ export default function Shop() {
   const [suggestions, setSuggestions] = useState<{ type: 'product' | 'category', text: string, id?: string }[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [dbCategories, setDbCategories] = useState<any[]>([]);
+  const [liveInventory, setLiveInventory] = useState<number>(0);
 
   const defaultFilterTypes = ["All", "Full-face", "Motorcycles", "Visor", "Accessory", "Boots", "Gloves", "Suit", "Jacket", "Pants"];
   const [filterTypes, setFilterTypes] = useState<string[]>(defaultFilterTypes);
+
+  // Fetch Live Inventory for Premium Helmets
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    
+    const fetchInventory = async () => {
+      try {
+        const q = query(
+          collection(db, "products"),
+          where("status", "==", "published"),
+          where("type", "==", "Full-face")
+        );
+        const snap = await getDocs(q);
+        let stock = 0;
+        snap.forEach(doc => {
+          const data = doc.data();
+          if (data.stock) stock += Number(data.stock);
+        });
+        
+        if (stock === 0) {
+          const fallbackStock = staticProducts
+            .filter(p => (!p.status || p.status === 'published') && p.type === 'Full-face')
+            .reduce((acc, p) => acc + (p.stock || 0), 0);
+          setLiveInventory(fallbackStock);
+        } else {
+          setLiveInventory(stock);
+        }
+      } catch (err) {
+        if (!isQuotaError(err)) {
+          console.error("Inventory error", err);
+        }
+        const fallbackStock = staticProducts
+          .filter(p => (!p.status || p.status === 'published') && p.type === 'Full-face')
+          .reduce((acc, p) => acc + (p.stock || 0), 0);
+        setLiveInventory(fallbackStock);
+      }
+    };
+
+    fetchInventory();
+    interval = setInterval(fetchInventory, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Mapping of models to their specific parts
   const modelParts: Record<string, string[]> = {
@@ -413,6 +457,12 @@ export default function Shop() {
         <div>
           <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tighter uppercase mb-4">The Collection</h1>
           <p className="text-brand-metallic">Precision engineered gear for every riding style.</p>
+          {liveInventory > 0 && (
+            <div className="flex items-center gap-2 mt-4 text-[10px] uppercase tracking-widest font-bold text-brand-accent bg-brand-accent/5 border border-brand-accent/20 px-3 py-1.5 w-fit rounded-sm shadow-sm">
+              <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-pulse" />
+              Live Inventory: {liveInventory} Premium Units Available
+            </div>
+          )}
         </div>
         
         {/* Trust Badges */}

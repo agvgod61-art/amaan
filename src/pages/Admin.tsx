@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { db, handleFirestoreError, OperationType, isQuotaError, storage } from "../lib/firebase";
 import { doc, setDoc, collection, serverTimestamp, getDocs, updateDoc, deleteDoc, query, orderBy, getDoc, limit, getDocsFromCache } from "../lib/firebase";
 import { ref, deleteObject } from "firebase/storage";
-import { Loader2, Database, AlertCircle, ShoppingBag, Package, Plus, Trash2, Edit2, X, UserPlus, Users, ShieldCheck, RefreshCw, LayoutGrid, Settings, Shield, LineChart, FileText, PlayCircle, PackageCheck, CheckCircle2, XCircle, MessageCircle, Star, Maximize2, Upload, Link as LinkIcon } from "lucide-react";
+import { Loader2, Database, AlertCircle, ShoppingBag, Package, Plus, Trash2, Edit2, X, UserPlus, Users, ShieldCheck, RefreshCw, LayoutGrid, Settings, Shield, LineChart, FileText, PlayCircle, PackageCheck, CheckCircle2, XCircle, MessageCircle, Star, Maximize2, Upload, Link as LinkIcon, ShoppingCart } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { products as initialProducts } from "../data/products";
 import { cn } from "../lib/utils";
@@ -50,6 +50,24 @@ export default function Admin() {
   const [adminList, setAdminList] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState<{totalViews: number, uniqueVisits: number}>({ totalViews: 0, uniqueVisits: 0 });
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [cartCounts, setCartCounts] = useState<Record<string, number>>({});
+
+  const fetchCartCounts = async () => {
+    try {
+      const snap = await getDocs(collection(db, "cart_items"));
+      const counts: Record<string, number> = {};
+      snap.forEach(doc => {
+        const data = doc.data();
+        if (data.product && data.product.id) {
+          // Counting how many cart entries exist for this product (i.e. how many times it was added)
+          counts[data.product.id] = (counts[data.product.id] || 0) + 1;
+        }
+      });
+      setCartCounts(counts);
+    } catch (err) {
+      console.error("Failed to fetch cart counts", err);
+    }
+  };
   const [refreshCountdown, setRefreshCountdown] = useState(300);
   const [newCategory, setNewCategory] = useState({ name: "", slug: "", description: "", order: 0, image: "" });
   const [editingCategory, setEditingCategory] = useState<any | null>(null);
@@ -112,7 +130,10 @@ export default function Admin() {
         fetchAnalytics();
       }
       if (activeTab === "orders" && orders.length === 0) fetchOrders();
-      if (activeTab === "products" && dbProducts.length === 0) fetchProducts();
+      if (activeTab === "products") {
+        if (dbProducts.length === 0) fetchProducts();
+        fetchCartCounts();
+      }
       if (activeTab === "categories" && categories.length === 0) fetchCategories();
       if (activeTab === "admins" && adminList.length === 0) fetchAdmins();
       if (activeTab === "site") {
@@ -518,7 +539,10 @@ export default function Admin() {
       interval = setInterval(() => {
         setRefreshCountdown((prev) => {
           if (prev <= 1) {
-            if (activeTab === "products") fetchProducts(true);
+            if (activeTab === "products") {
+              fetchProducts(true);
+              fetchCartCounts();
+            }
             if (activeTab === "orders") fetchOrders(true);
             return 300; // Increased to 5 minutes to save quota
           }
@@ -1157,7 +1181,10 @@ export default function Admin() {
                 <div className="w-px h-4 bg-white/10 mx-2" />
                 <button 
                   onClick={() => {
-                    if (activeTab === "products") fetchProducts();
+                    if (activeTab === "products") {
+                      fetchProducts();
+                      fetchCartCounts();
+                    }
                     if (activeTab === "orders") fetchOrders();
                   }}
                   className="flex items-center gap-2 text-brand-metallic hover:text-white transition-colors"
@@ -2696,12 +2723,31 @@ export default function Admin() {
               <div className="flex items-center gap-8">
                 <div className="text-right">
                   <p className="text-[10px] text-brand-metallic uppercase tracking-widest mb-1 flex items-center justify-end gap-1">
+                    <ShoppingCart size={10} className="text-brand-accent" />
+                    In Carts
+                  </p>
+                  <p className="font-mono text-sm font-bold text-white">
+                    {cartCounts[product.id] || 0} SAVED
+                  </p>
+                </div>
+                <div className="text-right border-l border-white/5 pl-8 relative">
+                  <p className="text-[10px] text-brand-metallic uppercase tracking-widest mb-1 flex items-center justify-end gap-1">
                     {product.stock > 10 ? <CheckCircle2 size={10} className="text-green-500" /> : product.stock > 0 ? <Loader2 size={10} className="text-yellow-500 animate-pulse" /> : <XCircle size={10} className="text-red-500" />}
                     Stock Level
                   </p>
                   <p className={`font-mono text-sm font-bold ${product.stock > 10 ? 'text-green-500' : product.stock > 0 ? 'text-yellow-500' : 'text-red-500'}`}>
                     {product.stock || 0} UNITS
                   </p>
+                  {product.stock < 3 && (
+                    <a
+                      href={`https://wa.me/${siteSettings?.whatsappNumber || '918292908076'}?text=${encodeURIComponent(`⚠️ CRITICAL INVENTORY ALERT: Product "${product.name}" (ID: ${product.id}) has dropped to ${product.stock} units! Please restock immediately.`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute top-full mt-2 right-0 bg-red-500/10 border border-red-500/50 text-red-500 text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded whitespace-nowrap hover:bg-red-500 hover:text-white transition-colors"
+                    >
+                      Notify Supplier via WhatsApp
+                    </a>
+                  )}
                 </div>
                 <div className="text-right border-l border-white/5 pl-8">
                   <p className="text-[10px] text-brand-metallic uppercase tracking-widest mb-1">Asset Value</p>

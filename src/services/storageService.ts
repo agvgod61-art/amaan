@@ -1,6 +1,7 @@
-import { auth } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { realStorage } from '../lib/real-firebase';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
+import { doc, getDoc } from 'firebase/firestore';
 
 export const uploadFileToStorage = async (
   file: File | Blob, 
@@ -10,7 +11,30 @@ export const uploadFileToStorage = async (
   onProgress?: (progress: number) => void
 ): Promise<string> => {
   const user = auth.currentUser;
-  const userId = user?.uid || 'guest';
+  
+  if (!user || !user.email) {
+    throw new Error("Direct image upload blocked. You must be logged in as an admin.");
+  }
+
+  const SUPER_ADMINS = ["yamaan115@gmail.com", "avggod61@gmail.com", "agvgod61@gmail.com"];
+  let isAdmin = false;
+  
+  if (SUPER_ADMINS.includes(user.email.toLowerCase())) {
+    isAdmin = true;
+  } else {
+    try {
+      const adminDoc = await getDoc(doc(db, "admins", user.email.toLowerCase()));
+      isAdmin = adminDoc.exists();
+    } catch (e) {
+      console.error("Failed to check admin status", e);
+    }
+  }
+
+  if (!isAdmin) {
+    throw new Error("Direct image upload blocked. Admin permission required.");
+  }
+
+  const userId = user.uid;
   
   const extension = originalName.split('.').pop() || 'tmp';
   const uuid = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString();
@@ -92,6 +116,28 @@ export const getSignedImageUrl = async (path: string): Promise<string> => {
 
 export const deleteFileFromStorage = async (path: string): Promise<void> => {
   if (!path || path.startsWith('data:') || path.startsWith('blob:')) return;
+  
+  const user = auth.currentUser;
+  if (!user || !user.email) {
+    throw new Error("Direct image deletion blocked. You must be logged in as an admin.");
+  }
+
+  const SUPER_ADMINS = ["yamaan115@gmail.com", "avggod61@gmail.com", "agvgod61@gmail.com"];
+  let isAdmin = false;
+  if (SUPER_ADMINS.includes(user.email.toLowerCase())) {
+    isAdmin = true;
+  } else {
+    try {
+      const adminDoc = await getDoc(doc(db, "admins", user.email.toLowerCase()));
+      isAdmin = adminDoc.exists();
+    } catch (e) {
+      console.error("Failed to check admin status", e);
+    }
+  }
+
+  if (!isAdmin) {
+    throw new Error("Direct image deletion blocked. Admin permission required.");
+  }
   
   try {
     // If it's a full Firebase Storage URL, we can create a ref from it

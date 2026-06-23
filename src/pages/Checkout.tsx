@@ -5,7 +5,7 @@ import { cn } from "../lib/utils";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../lib/firebase";
-import { collection, addDoc, serverTimestamp } from "../lib/firebase";
+import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc } from "../lib/firebase";
 import StorageImage from '../components/StorageImage';
 
 export default function Checkout() {
@@ -133,6 +133,33 @@ export default function Checkout() {
         payment_method: paymentMethod,
         created_at: serverTimestamp()
       });
+
+      // Update inventory and trigger low stock alerts
+      const adminPhone = "918292908076"; // Admin's WhatsApp number
+      for (const item of cart) {
+        if (item.product?.id) {
+          try {
+            const productRef = doc(db, "products", item.product.id);
+            const productSnap = await getDoc(productRef);
+            if (productSnap.exists()) {
+              const currentStock = productSnap.data().stock || 0;
+              const newStock = Math.max(0, currentStock - item.quantity);
+              await updateDoc(productRef, { stock: newStock });
+
+              if (newStock < 3) {
+                const lowStockMsg = `⚠️ CRITICAL INVENTORY ALERT ⚠️\n\nProduct: ${item.product.name}\nID: ${item.product.id}\n\nInventory has dropped to ${newStock} units!\nPlease restock immediately.`;
+                await fetch('/api/whatsapp', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ phone: adminPhone, message: lowStockMsg })
+                }).catch(e => console.error("Low stock alert failed", e));
+              }
+            }
+          } catch (e) {
+            console.error(`Failed to update stock for ${item.product.id}`, e);
+          }
+        }
+      }
     } catch (err) {
       console.error("Firebase insert error", err);
       // Fallback: Proceed to WhatsApp anyway even if Firebase fails
