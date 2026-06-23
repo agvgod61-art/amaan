@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { db, auth } from '../lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { signOut } from 'firebase/auth';
+import { signOut, signInAnonymously } from 'firebase/auth';
 import { supabase } from '../supabaseClient';
 
 interface AuthContextType {
@@ -50,6 +50,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const checkUserStatus = async (supabaseUser: any) => {
+    try {
+      if (!auth.currentUser) {
+        await signInAnonymously(auth);
+      }
+    } catch (e) {
+      console.warn("Failed to sign in anonymously to Firebase:", e);
+    }
+
     // Check if user is blocked or has incidents
     try {
       const blockedRes = await getDoc(doc(db, 'blocked_users', supabaseUser.id));
