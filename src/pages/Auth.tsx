@@ -45,6 +45,9 @@ export default function Auth() {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
       });
       if (error) throw error;
       // Note: supabase handles the redirect automatically
@@ -115,9 +118,16 @@ export default function Auth() {
         if (signInError) throw signInError;
         navigate('/');
       } else {
-        const { error: signUpError } = await supabase.auth.signUp({ email, password });
+        const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
         if (signUpError) throw signUpError;
-        navigate('/');
+        
+        if (!data.session) {
+          setSuccessMsg("Check your email and confirm your account before logging in.");
+          setIsSignIn(true);
+          setPassword('');
+        } else {
+          navigate('/');
+        }
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred during authentication.');

@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { db, auth } from '../lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
-import { User, onAuthStateChanged, signOut, sendPasswordResetEmail, updateEmail, updateProfile } from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
+import { supabase } from '../supabaseClient';
 
 interface AuthContextType {
   user: any | null; // Using any to represent extended user object
@@ -21,9 +22,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        checkUserStatus(firebaseUser);
+    // Check current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        checkUserStatus(session.user);
       } else {
         setUser(null);
         setIsBlocked(false);
@@ -31,18 +33,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => unsubscribe();
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (session?.user) {
+          checkUserStatus(session.user);
+        } else {
+          setUser(null);
+          setIsBlocked(false);
+          setLoading(false);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const checkUserStatus = async (firebaseUser: User) => {
+  const checkUserStatus = async (supabaseUser: any) => {
     // Check if user is blocked or has incidents
     try {
-      const blockedRes = await getDoc(doc(db, 'blocked_users', firebaseUser.uid));
-      const incidentRes = await getDoc(doc(db, 'security_incidents', firebaseUser.uid));
+      const blockedRes = await getDoc(doc(db, 'blocked_users', supabaseUser.id));
+      const incidentRes = await getDoc(doc(db, 'security_incidents', supabaseUser.id));
       
       if (blockedRes.exists() || incidentRes.exists()) {
         setIsBlocked(true);
-        await signOut(auth);
+        await supabase.auth.signOut();
         setUser(null);
         setLoading(false);
         return;
@@ -51,28 +66,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsBlocked(false);
       
       const enhancedUser: any = {
-        ...firebaseUser,
-        id: firebaseUser.uid, // Supabase compat
-        email: firebaseUser.email,
+        ...supabaseUser,
+        id: supabaseUser.id,
+        email: supabaseUser.email,
+        displayName: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split('@')[0],
       };
       
       setUser(enhancedUser);
 
       // Ensure customer record and custom customer ID
       try {
-        const customerDoc = await getDoc(doc(db, "customers", firebaseUser.uid));
+        const customerDoc = await getDoc(doc(db, "customers", supabaseUser.id));
         if (!customerDoc.exists()) {
           const customerId = "CUS-" + Math.random().toString(36).substr(2, 6).toUpperCase();
-          await setDoc(doc(db, "customers", firebaseUser.uid), {
-            id: firebaseUser.uid,
+          await setDoc(doc(db, "customers", supabaseUser.id), {
+            id: supabaseUser.id,
             customer_id: customerId,
-            email: firebaseUser.email,
+            email: supabaseUser.email,
             created_at: serverTimestamp(),
             last_login: serverTimestamp(),
           });
         } else {
           // update last login time
-          await setDoc(doc(db, "customers", firebaseUser.uid), {
+          await setDoc(doc(db, "customers", supabaseUser.id), {
             ...customerDoc.data(),
             last_login: serverTimestamp()
           });
@@ -83,8 +99,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error(err);
       const enhancedUser: any = {
-        ...firebaseUser,
-        id: firebaseUser.uid,
+        ...supabaseUser,
+        id: supabaseUser.id,
+        email: supabaseUser.email,
       };
       setUser(enhancedUser);
     } finally {
@@ -93,24 +110,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    await signOut(auth);
+    await supabase.auth.signOut();
+    await signOut(auth); // Sign out of firebase as well just in case
   };
   
   const resetPassword = async (email: string) => {
-    await sendPasswordResetEmail(auth, email);
+    await supabase.auth.resetPasswordForEmail(email);
   };
 
   const changeEmail = async (newEmail: string) => {
-    if (auth.currentUser) {
-      await updateEmail(auth.currentUser, newEmail);
-    }
+    await supabase.auth.updateUser({ email: newEmail });
   };
 
   const updateName = async (newName: string) => {
-    if (auth.currentUser) {
-      await updateProfile(auth.currentUser, { displayName: newName });
-      setUser((prev: any) => ({ ...prev, displayName: newName }));
-    }
+    await supabase.auth.updateUser({ data: { full_name: newName } });
+    setUser((prev: any) => ({ ...prev, displayName: newName }));
   };
 
   return (
