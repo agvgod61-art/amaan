@@ -5,6 +5,8 @@ import { AlertCircle, Loader2, Shield, Mail, Lock, Chrome, Phone } from 'lucide-
 import { auth } from '../lib/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 
+import { supabase } from '../supabaseClient';
+
 export default function Auth() {
   const [isSignIn, setIsSignIn] = useState(true);
   const [authMode, setAuthMode] = useState<'email' | 'phone'>('email');
@@ -107,10 +109,12 @@ export default function Auth() {
 
     try {
       if (isSignIn) {
-        await signInWithEmailAndPassword(auth, email, password);
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) throw signInError;
         navigate('/');
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const { error: signUpError } = await supabase.auth.signUp({ email, password });
+        if (signUpError) throw signUpError;
         navigate('/');
       }
     } catch (err: any) {
