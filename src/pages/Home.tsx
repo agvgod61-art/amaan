@@ -12,6 +12,7 @@ import { useSettings } from "../context/SettingsContext";
 
 import { Edit2, X as CloseIcon } from "lucide-react";
 import { auth } from "../lib/firebase";
+import { useAuth } from "../context/AuthContext";
 import StorageImage from '../components/StorageImage';
 import SEO from '../components/SEO';
 
@@ -25,6 +26,7 @@ interface GalleryConfig {
 export default function Home() {
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { addToCart, buyNow } = useCart();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { settings } = useSettings();
   const [searchQuery, setSearchQuery] = useState("");
@@ -211,7 +213,7 @@ export default function Home() {
             </div>
             
             <div className="lg:w-1/2 grid grid-cols-2 gap-4 w-full relative group">
-              {auth.currentUser && (
+              {user && (
                 <Link 
                   to="/admin" 
                   onClick={() => localStorage.setItem('admin_active_tab', 'site')}
@@ -258,7 +260,7 @@ export default function Home() {
               viewport={{ once: true }}
               className="relative aspect-square md:aspect-video lg:aspect-square bg-white/5 border border-white/10 p-4 group"
             >
-              {auth.currentUser && (
+              {user && (
                 <Link 
                   to="/admin" 
                   onClick={() => localStorage.setItem('admin_active_tab', 'site')}
