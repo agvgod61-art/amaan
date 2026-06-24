@@ -1,8 +1,7 @@
-import { db, auth } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { realStorage } from '../lib/real-firebase';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { doc, getDoc } from 'firebase/firestore';
-import { supabase } from '../supabaseClient';
 
 export const uploadFileToStorage = async (
   file: File | Blob, 
@@ -11,8 +10,7 @@ export const uploadFileToStorage = async (
   itemId: string = 'new',
   onProgress?: (progress: number) => void
 ): Promise<string> => {
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user || auth.currentUser;
+  const user = auth.currentUser;
   
   if (!user || !user.email) {
     throw new Error("Direct image upload blocked. You must be logged in as an admin.");
@@ -36,7 +34,7 @@ export const uploadFileToStorage = async (
     throw new Error("Direct image upload blocked. Admin permission required.");
   }
 
-  const userId = (user as any).id || (user as any).uid;
+  const userId = user.uid;
   
   const extension = originalName.split('.').pop() || 'tmp';
   const uuid = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString();
@@ -119,8 +117,7 @@ export const getSignedImageUrl = async (path: string): Promise<string> => {
 export const deleteFileFromStorage = async (path: string): Promise<void> => {
   if (!path || path.startsWith('data:') || path.startsWith('blob:')) return;
   
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user || auth.currentUser;
+  const user = auth.currentUser;
   if (!user || !user.email) {
     throw new Error("Direct image deletion blocked. You must be logged in as an admin.");
   }

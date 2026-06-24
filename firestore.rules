@@ -10,8 +10,6 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null && (
         request.auth.token.email == 'yamaan115@gmail.com' ||
-        request.auth.token.email == 'avggod61@gmail.com' ||
-        request.auth.token.email == 'agvgod61@gmail.com' ||
         (
           !exists(/databases/$(database)/documents/blocked_users/$(request.auth.uid)) &&
           !exists(/databases/$(database)/documents/security_incidents/$(request.auth.uid))
@@ -23,14 +21,13 @@ service cloud.firestore {
       return request.auth != null && 
              request.auth.token.email != null &&
              (request.auth.token.email == 'yamaan115@gmail.com' || 
-              request.auth.token.email == 'avggod61@gmail.com' ||
-              request.auth.token.email == 'agvgod61@gmail.com' ||
               request.auth.token.admin == true ||
-              exists(/databases/$(database)/documents/admins/$(request.auth.token.email.lower())));
+              exists(/databases/$(database)/documents/admins/$(request.auth.token.email.lower()))) && 
+             request.auth.token.email_verified == true;
     }
 
     function isMasterAdmin() {
-      return request.auth != null && (request.auth.token.email == 'yamaan115@gmail.com' || request.auth.token.email == 'agvgod61@gmail.com' || request.auth.token.email == 'avggod61@gmail.com');
+      return request.auth != null && request.auth.token.email == 'yamaan115@gmail.com' && request.auth.token.email_verified == true;
     }
 
     function isValidId(id) {
@@ -246,8 +243,7 @@ service cloud.firestore {
 
     // Cart Items
     match /cart_items/{itemId} {
-      allow read, update, delete: if request.auth != null && (resource.data.user_id == request.auth.uid || isAdmin());
-      allow list: if isAdmin() || (request.auth != null && resource.data.user_id == request.auth.uid);
+      allow read, update, delete: if request.auth != null && resource.data.user_id == request.auth.uid;
       allow create: if request.auth != null && incoming().user_id == request.auth.uid;
     }
   }

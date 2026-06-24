@@ -5,8 +5,6 @@ import { AlertCircle, Loader2, Shield, Mail, Lock, Chrome, Phone } from 'lucide-
 import { auth } from '../lib/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 
-import { supabase } from '../supabaseClient';
-
 export default function Auth() {
   const [isSignIn, setIsSignIn] = useState(true);
   const [authMode, setAuthMode] = useState<'email' | 'phone'>('email');
@@ -43,14 +41,9 @@ export default function Auth() {
     setSuccessMsg(null);
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-        },
-      });
-      if (error) throw error;
-      // Note: supabase handles the redirect automatically
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      navigate('/');
     } catch (err: any) {
       setError(err.message || 'An error occurred during Google Sign In.');
       setLoading(false);
@@ -114,20 +107,11 @@ export default function Auth() {
 
     try {
       if (isSignIn) {
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-        if (signInError) throw signInError;
+        await signInWithEmailAndPassword(auth, email, password);
         navigate('/');
       } else {
-        const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
-        if (signUpError) throw signUpError;
-        
-        if (!data.session) {
-          setSuccessMsg("Check your email and confirm your account before logging in.");
-          setIsSignIn(true);
-          setPassword('');
-        } else {
-          navigate('/');
-        }
+        await createUserWithEmailAndPassword(auth, email, password);
+        navigate('/');
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred during authentication.');
