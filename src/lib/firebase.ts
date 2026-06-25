@@ -18,9 +18,29 @@ export function handleFirestoreError(
   path: string | null,
 ) {
   console.error(`Firebase error during ${operationType} on ${path}:`, error);
+  if (isQuotaError(error)) {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("firestore-quota-exceeded"));
+    }
+  }
 }
 
 export function isQuotaError(error: unknown): boolean {
-  if (error instanceof Error && error.message.includes("quota")) return true;
+  if (!error) return false;
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes("quota") || msg.includes("exceeded")) return true;
+  }
+  const str = String(error).toLowerCase();
+  if (str.includes("quota") || str.includes("exceeded")) return true;
+  
+  const errObj = error as any;
+  if (errObj.message && typeof errObj.message === "string") {
+    const msg = errObj.message.toLowerCase();
+    if (msg.includes("quota") || msg.includes("exceeded")) return true;
+  }
+  if (errObj.code && typeof errObj.code === "string" && errObj.code.toLowerCase().includes("resource_exhausted")) {
+    return true;
+  }
   return false;
 }

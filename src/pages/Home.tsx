@@ -37,6 +37,7 @@ export default function Home() {
     squareImage2: "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?q=80&w=2070&auto=format&fit=crop",
     technicalImage: "https://images.unsplash.com/photo-1542124536-1e967396796c?auto=format&fit=crop&q=80&w=1200"
   });
+  const [activePromo, setActivePromo] = useState<{ images: string[]; active: boolean } | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -72,6 +73,15 @@ export default function Home() {
         if (galleryDoc.exists()) {
           setGallery(galleryDoc.data() as GalleryConfig);
         }
+
+        // Active Promo
+        const promoSnap = await getDoc(doc(db, "site_config", "active_promo"));
+        if (promoSnap.exists() && promoSnap.data().active && promoSnap.data().images?.length === 5) {
+          setActivePromo({
+            images: promoSnap.data().images,
+            active: true
+          });
+        }
       } catch (error) {
         if (isQuotaError(error)) {
           console.warn("Firestore quota exceeded. Attempting cache fallback.");
@@ -98,6 +108,15 @@ export default function Home() {
             const galSnap = await getDocFromCache(doc(db, "site_config", "homepage_gallery"));
             if (galSnap.exists()) {
               setGallery(galSnap.data() as GalleryConfig);
+            }
+
+            // Try cache for promo
+            const promoSnap = await getDocFromCache(doc(db, "site_config", "active_promo"));
+            if (promoSnap.exists() && promoSnap.data().active && promoSnap.data().images?.length === 5) {
+              setActivePromo({
+                images: promoSnap.data().images,
+                active: true
+              });
             }
           } catch (cacheErr) {
             setAllProducts(staticProducts.filter(p => (!p.status || p.status === 'published') && p.image && (p.image.startsWith('http') || p.image.startsWith('data:image'))));
@@ -180,6 +199,64 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
+
+      {/* 1.5 ACTIVE PROMOTIONS */}
+      {activePromo && activePromo.images && activePromo.images.length === 5 && (
+        <section className="py-16 px-6 bg-brand-black border-b border-white/5 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(226,43,43,0.05)_0%,transparent_70%)] pointer-events-none" />
+          <div className="max-w-7xl mx-auto space-y-10">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-2 h-2 bg-brand-accent rounded-full animate-pulse" />
+                  <span className="text-xs font-bold uppercase tracking-[0.3em] text-brand-accent">Exclusive Campaign</span>
+                </div>
+                <h2 className="text-4xl md:text-5xl font-display font-bold uppercase tracking-tight text-white italic">
+                  Live <span className="text-brand-accent">Promotion</span> Gallery
+                </h2>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] font-mono bg-white/5 border border-white/10 px-3 py-1.5 rounded text-brand-metallic uppercase tracking-widest">
+                  Verified Authenticity & Safety
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {activePromo.images.map((imgUrl, idx) => {
+                // Different layout heights/aspect ratios for bento effect on grid
+                const spanClass = idx === 0 
+                  ? "col-span-2 md:col-span-2 md:row-span-2 aspect-square md:aspect-auto h-full min-h-[250px]" 
+                  : "aspect-square";
+                return (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1, duration: 0.6 }}
+                    viewport={{ once: true }}
+                    className={cn(
+                      "relative overflow-hidden rounded bg-brand-gray border border-white/10 group shadow-lg",
+                      spanClass
+                    )}
+                  >
+                    <StorageImage
+                      src={imgUrl}
+                      alt={`Promo Campaign Photo ${idx + 1}`}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                      <span className="text-xs uppercase font-bold tracking-widest text-brand-accent">
+                        Photo {idx + 1}
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* LIVE SHOWROOM - Real Action Showcase */}
       <section className="py-24 px-6 bg-brand-black border-y border-white/5 relative overflow-hidden">

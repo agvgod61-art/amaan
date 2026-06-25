@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product } from '../data/products';
 import { useAuth } from './AuthContext';
-import { db } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { collection, doc, setDoc, getDocs, deleteDoc, query, where, writeBatch } from 'firebase/firestore';
 
 export interface CartItem {
@@ -41,7 +41,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             setCart(snapshot.docs.map(doc => doc.data() as CartItem));
           }
         } catch (err) {
-           console.error("Error loading cart from Firebase", err);
+          handleFirestoreError(err, OperationType.GET, "cart_items");
         }
       }
     };
@@ -75,8 +75,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (user) {
+      const itemDocId = getDocId(product.id, size, color);
       try {
-        const itemDocId = getDocId(product.id, size, color);
         const existing = cart.find(item => item.product.id === product.id && item.size === size && item.color === color);
         const finalQty = existing ? Math.min(5, existing.quantity + quantity) : newQty;
         
@@ -89,7 +89,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           quantity: finalQty
         }, { merge: true });
       } catch (err) {
-        console.error("Error adding to Firebase cart", err);
+        handleFirestoreError(err, OperationType.ADD, `cart_items/${itemDocId}`);
       }
     }
   };
@@ -112,8 +112,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     ));
 
     if (user) {
+      const itemDocId = getDocId(productId, size, color);
       try {
-        const itemDocId = getDocId(productId, size, color);
         const item = cart.find(i => i.product.id === productId && i.size === size && i.color === color);
         if (item) {
           await setDoc(doc(db, 'cart_items', itemDocId), {
@@ -124,7 +124,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           }, { merge: true });
         }
       } catch (err) {
-        console.error("Error updating Firebase cart", err);
+        handleFirestoreError(err, OperationType.UPDATE, `cart_items/${itemDocId}`);
       }
     }
   };
@@ -133,11 +133,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setCart(prev => prev.filter(item => !(item.product.id === productId && item.size === size && item.color === color)));
 
     if (user) {
+      const itemDocId = getDocId(productId, size, color);
       try {
-        const itemDocId = getDocId(productId, size, color);
         await deleteDoc(doc(db, 'cart_items', itemDocId));
       } catch (err) {
-        console.error("Error removing from Firebase cart", err);
+        handleFirestoreError(err, OperationType.DELETE, `cart_items/${itemDocId}`);
       }
     }
   };
@@ -154,7 +154,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         });
         await batch.commit();
       } catch (err) {
-        console.error("Error clearing Firebase cart", err);
+        handleFirestoreError(err, OperationType.DELETE, "cart_items/all");
       }
     }
   };

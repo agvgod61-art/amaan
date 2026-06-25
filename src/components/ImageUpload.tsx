@@ -85,6 +85,12 @@ export default function ImageUpload({ onUploadComplete, label = "Upload Image", 
         fileToUpload = await optimizeImage(file);
       }
 
+      const startTime = Date.now();
+      setProgress(15);
+      const timer = setInterval(() => {
+        setProgress(prev => Math.min(90, prev + 15));
+      }, 450);
+
       // Import upload service dynamically to avoid circular deps or just top level
       const { uploadFileToStorage } = await import('../services/storageService');
       
@@ -92,9 +98,15 @@ export default function ImageUpload({ onUploadComplete, label = "Upload Image", 
         fileToUpload, 
         file.name, 
         featureName, 
-        itemId,
-        (p) => setProgress(Math.round(p))
+        itemId
       );
+
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 3000) {
+        await new Promise(r => setTimeout(r, 3000 - elapsed));
+      }
+      clearInterval(timer);
+
       onUploadComplete(url);
       setSuccess(true);
       setUploading(false);

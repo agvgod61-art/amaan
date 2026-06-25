@@ -8,10 +8,12 @@ import { useAuth } from "../context/AuthContext";
 import { products as initialProducts } from "../data/products";
 import { cn } from "../lib/utils";
 import ImageUpload from "../components/ImageUpload";
+import MultiImageUpload from "../components/MultiImageUpload";
 import { getEmbedUrl } from "../lib/mediaUtils";
 import StorageImage from '../components/StorageImage';
 
 import AdminDashboardCharts from "../components/AdminDashboardCharts";
+import AdminPromoUpload from "../components/AdminPromoUpload";
 
 type AdminTab = "dashboard" | "orders" | "products" | "categories" | "admins" | "media" | "setup" | "site" | "reviews" | "security" | "customers";
 
@@ -65,7 +67,7 @@ export default function Admin() {
       });
       setCartCounts(counts);
     } catch (err) {
-      console.error("Failed to fetch cart counts", err);
+      handleFirestoreError(err, OperationType.GET, "cart_items");
     }
   };
   const [refreshCountdown, setRefreshCountdown] = useState(300);
@@ -94,6 +96,8 @@ export default function Admin() {
     colors: [] as { name: string; hex: string; image: string }[]
   });
   const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [newProductUploadMode, setNewProductUploadMode] = useState<"single" | "batch">("single");
+  const [editProductUploadMode, setEditProductUploadMode] = useState<"single" | "batch">("single");
   const [tempColor, setTempColor] = useState({ name: "", hex: "#111827", image: "" });
   const [tempColorEdit, setTempColorEdit] = useState({ name: "", hex: "#111827", image: "" });
 
@@ -168,7 +172,7 @@ export default function Admin() {
         });
       }
     } catch (err) {
-      console.error("Failed to fetch analytics", err);
+      handleFirestoreError(err, OperationType.GET, "analytics/traffic");
     }
   };
 
@@ -1783,53 +1787,119 @@ export default function Admin() {
                   </div>
                 )}
                 <div className="md:col-span-4 space-y-4 mb-6">
-                  <label className="text-[8px] text-brand-metallic uppercase tracking-widest font-bold block">Gallery Views</label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {(newProduct.images || []).map((img, idx) => (
-                      <div key={idx} className="flex flex-col gap-3">
-                        <ImageUpload 
-                          onUploadComplete={(url) => {
-                            const newImg = [...(newProduct.images || [])];
-                            newImg[idx] = url;
-                            setNewProduct({...newProduct, images: newImg});
-                          }}
-                          label={`Image View ${idx + 1}`}
-                          initialUrl={img}
-                          featureName="products"
-                          itemId="new"
-                        />
-                        {img && (
-                          <div className="h-40 w-full border border-white/10 overflow-hidden bg-white/5 flex items-center justify-center relative group">
-                            <StorageImage 
-                              src={img} 
-                              alt={`View ${idx + 1}`} 
-                              className="w-full h-full object-cover" 
-                              referrerPolicy="no-referrer"
-                            />
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
+                    <label 
+                      onClick={() => {
+                        setStatus("idle");
+                        setMessage("Please select exactly 5 photos .");
+                      }}
+                      className="text-[10px] text-brand-metallic uppercase tracking-widest font-bold cursor-pointer hover:text-brand-accent transition-colors"
+                    >
+                      Gallery Views
+                    </label>
+                    <div className="flex items-center gap-1.5 bg-black border border-white/10 p-1 rounded-sm self-start">
+                      <button
+                        type="button"
+                        onClick={() => setNewProductUploadMode("single")}
+                        className={cn(
+                          "px-3 py-1 text-[8px] uppercase font-bold tracking-wider rounded-sm transition-all",
+                          newProductUploadMode === "single"
+                            ? "bg-brand-accent text-white"
+                            : "text-brand-metallic hover:text-white"
+                        )}
+                      >
+                        Single Slots
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewProductUploadMode("batch")}
+                        className={cn(
+                          "px-3 py-1 text-[8px] uppercase font-bold tracking-wider rounded-sm transition-all",
+                          newProductUploadMode === "batch"
+                            ? "bg-brand-accent text-white"
+                            : "text-brand-metallic hover:text-white"
+                        )}
+                      >
+                        Batch Upload (Multi-Select)
+                      </button>
+                    </div>
+                  </div>
+
+                  {newProductUploadMode === "batch" ? (
+                    <MultiImageUpload
+                      images={newProduct.images || []}
+                      onImagesChange={(urls) => {
+                        setNewProduct({ ...newProduct, images: urls });
+                      }}
+                      maxImages={10}
+                      featureName="products"
+                      itemId="new"
+                      label="Select & Upload Multiple Images at Once"
+                    />
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {(newProduct.images || []).map((img, idx) => (
+                        <div key={idx} className="flex flex-col gap-3 border border-white/5 p-3 rounded-sm relative bg-white/[0.01]">
+                          <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-1">
+                            <span className="text-[9px] uppercase font-bold tracking-widest text-brand-metallic">Slot {idx + 1}</span>
                             <button 
                               type="button"
                               onClick={() => {
                                 const newImg = (newProduct.images || []).filter((_, i) => i !== idx);
                                 setNewProduct({...newProduct, images: newImg});
                               }}
-                              className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-sm opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                              className="text-red-500 hover:text-red-400 p-1 flex items-center gap-1 text-[9px] uppercase font-bold tracking-wider transition-colors"
+                              title="Remove this slot entirely"
                             >
-                              <Trash2 size={12} />
+                              <Trash2 size={11} /> Remove
                             </button>
                           </div>
-                        )}
-                      </div>
-                    ))}
-                    {(newProduct.images || []).length < 5 && (
-                      <button 
-                        type="button"
-                        onClick={() => setNewProduct({...newProduct, images: [...(newProduct.images || []), ""]})}
-                        className="flex h-[42px] items-center justify-center border border-dashed border-brand-accent/40 text-brand-metallic hover:text-white transition-all text-[9px] uppercase font-bold tracking-widest mt-6"
-                      >
-                        <Plus size={14} className="mr-2" /> Add Image Slot
-                      </button>
-                    )}
-                  </div>
+                          <ImageUpload 
+                            onUploadComplete={(url) => {
+                              const newImg = [...(newProduct.images || [])];
+                              newImg[idx] = url;
+                              setNewProduct({...newProduct, images: newImg});
+                            }}
+                            label={`Image View {idx + 1}`}
+                            initialUrl={img}
+                            featureName="products"
+                            itemId="new"
+                          />
+                          {img && (
+                            <div className="h-40 w-full border border-white/10 overflow-hidden bg-white/5 flex items-center justify-center relative group">
+                              <StorageImage 
+                                src={img} 
+                                alt={`View ${idx + 1}`} 
+                                className="w-full h-full object-cover" 
+                                referrerPolicy="no-referrer"
+                              />
+                              <button 
+                                type="button"
+                                onClick={() => {
+                                  const newImg = [...(newProduct.images || [])];
+                                  newImg[idx] = "";
+                                  setNewProduct({...newProduct, images: newImg});
+                                }}
+                                className="absolute top-2 right-2 p-1 bg-yellow-600 hover:bg-yellow-500 text-white rounded-sm opacity-0 group-hover:opacity-100 transition-opacity z-10 text-[9px] uppercase font-bold px-1.5 py-0.5"
+                                title="Clear image URL but keep slot"
+                              >
+                                Clear Image
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {(newProduct.images || []).length < 10 && (
+                        <button 
+                          type="button"
+                          onClick={() => setNewProduct({...newProduct, images: [...(newProduct.images || []), ""]})}
+                          className="flex h-[42px] items-center justify-center border border-dashed border-brand-accent/40 text-brand-metallic hover:text-white transition-all text-[9px] uppercase font-bold tracking-widest mt-6 animate-pulse"
+                        >
+                          <Plus size={14} className="mr-2" /> Add Image Slot
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
                   <div className="flex flex-col md:flex-row gap-4 mb-4">
                     <div className="flex-grow">
@@ -2462,32 +2532,62 @@ export default function Admin() {
                 </div>
               </div>
               <div className="md:col-span-4 space-y-4 mt-4">
-                <label className="text-[8px] text-brand-metallic uppercase block tracking-widest font-bold">Gallery Assets</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(editingProduct.images || []).map((img: string, idx: number) => (
-                    <div key={idx} className="flex flex-col gap-2">
-                      <ImageUpload 
-                        onUploadComplete={(url) => {
-                          const newImages = [...(editingProduct.images || [])];
-                          newImages[idx] = url;
-                          setEditingProduct({...editingProduct, images: newImages});
-                        }}
-                        label={`Persp. ${idx + 1}`}
-                        initialUrl={img}
-                        featureName="products"
-                        itemId={editingProduct.id}
-                      />
-                      {img && (
-                        <div className="flex items-center justify-between gap-2 p-2 bg-black border border-white/10">
-                          <div className="h-8 w-8 overflow-hidden rounded-sm bg-brand-black flex items-center justify-center">
-                            <StorageImage 
-                              src={img} 
-                              alt={`P.${idx+1}`} 
-                              className="w-full h-full object-cover" 
-                              referrerPolicy="no-referrer"
-                            />
-                          </div>
-                          <p className="text-[8px] font-mono text-brand-metallic truncate flex-grow italic">{img}</p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
+                  <label 
+                    onClick={() => {
+                      setStatus("idle");
+                      setMessage("Please select exactly 5 photos .");
+                    }}
+                    className="text-[10px] text-brand-metallic uppercase block tracking-widest font-bold cursor-pointer hover:text-brand-accent transition-colors"
+                  >
+                    Gallery Views
+                  </label>
+                  <div className="flex items-center gap-1.5 bg-black border border-white/10 p-1 rounded-sm self-start">
+                    <button
+                      type="button"
+                      onClick={() => setEditProductUploadMode("single")}
+                      className={cn(
+                        "px-3 py-1 text-[8px] uppercase font-bold tracking-wider rounded-sm transition-all",
+                        editProductUploadMode === "single"
+                          ? "bg-brand-accent text-white"
+                          : "text-brand-metallic hover:text-white"
+                      )}
+                    >
+                      Single Slots
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditProductUploadMode("batch")}
+                      className={cn(
+                        "px-3 py-1 text-[8px] uppercase font-bold tracking-wider rounded-sm transition-all",
+                        editProductUploadMode === "batch"
+                          ? "bg-brand-accent text-white"
+                          : "text-brand-metallic hover:text-white"
+                      )}
+                    >
+                      Batch Upload (Multi-Select)
+                    </button>
+                  </div>
+                </div>
+
+                {editProductUploadMode === "batch" ? (
+                  <MultiImageUpload
+                    images={editingProduct.images || []}
+                    onImagesChange={async (urls) => {
+                      await updateDoc(doc(db, "products", editingProduct.id), { images: urls });
+                      setEditingProduct({ ...editingProduct, images: urls });
+                    }}
+                    maxImages={10}
+                    featureName="products"
+                    itemId={editingProduct.id}
+                    label="Select & Upload Multiple Images at Once"
+                  />
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(editingProduct.images || []).map((img: string, idx: number) => (
+                      <div key={idx} className="flex flex-col gap-2 border border-white/5 p-3 rounded-sm relative bg-white/[0.01]">
+                        <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-1">
+                          <span className="text-[9px] uppercase font-bold tracking-widest text-brand-metallic">Slot {idx + 1}</span>
                           <button 
                             type="button"
                             onClick={async () => {
@@ -2499,24 +2599,67 @@ export default function Admin() {
                               await updateDoc(doc(db, "products", editingProduct.id), { images: newImages });
                               setEditingProduct({...editingProduct, images: newImages});
                             }}
-                            className="text-red-500 hover:text-red-400 p-1"
+                            className="text-red-500 hover:text-red-400 p-1 flex items-center gap-1 text-[9px] uppercase font-bold tracking-wider transition-colors"
+                            title="Remove this slot entirely"
                           >
-                            <Trash2 size={12} />
+                            <Trash2 size={11} /> Remove
                           </button>
                         </div>
-                      )}
-                    </div>
-                  ))}
-                  {(editingProduct.images || []).length < 5 && (
-                    <button 
-                      type="button"
-                      onClick={() => setEditingProduct({...editingProduct, images: [...(editingProduct.images || []), ""]})}
-                      className="flex h-[42px] items-center justify-center border border-dashed border-brand-accent/40 text-brand-metallic hover:text-white transition-all text-[9px] uppercase font-bold tracking-widest mt-6"
-                    >
-                      <Plus size={14} className="mr-2" /> Add Image Slot
-                    </button>
-                  )}
-                </div>
+                        <ImageUpload 
+                          onUploadComplete={async (url) => {
+                            const newImages = [...(editingProduct.images || [])];
+                            newImages[idx] = url;
+                            await updateDoc(doc(db, "products", editingProduct.id), { images: newImages });
+                            setEditingProduct({...editingProduct, images: newImages});
+                          }}
+                          label={`Persp. ${idx + 1}`}
+                          initialUrl={img}
+                          featureName="products"
+                          itemId={editingProduct.id}
+                        />
+                        {img && (
+                          <div className="flex items-center justify-between gap-2 p-2 bg-black border border-white/10">
+                            <div className="h-8 w-8 overflow-hidden rounded-sm bg-brand-black flex items-center justify-center">
+                              <StorageImage 
+                                src={img} 
+                                alt={`P.${idx+1}`} 
+                                className="w-full h-full object-cover" 
+                                referrerPolicy="no-referrer"
+                              />
+                            </div>
+                            <p className="text-[8px] font-mono text-brand-metallic truncate flex-grow italic">{img}</p>
+                            <button 
+                              type="button"
+                              onClick={async () => {
+                                const newImages = [...(editingProduct.images || [])];
+                                newImages[idx] = "";
+                                await updateDoc(doc(db, "products", editingProduct.id), { images: newImages });
+                                setEditingProduct({...editingProduct, images: newImages});
+                              }}
+                              className="text-yellow-600 hover:text-yellow-500 p-1 text-[8px] uppercase font-bold"
+                              title="Clear image URL but keep slot"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {(editingProduct.images || []).length < 10 && (
+                      <button 
+                        type="button"
+                        onClick={async () => {
+                          const newImages = [...(editingProduct.images || []), ""];
+                          await updateDoc(doc(db, "products", editingProduct.id), { images: newImages });
+                          setEditingProduct({...editingProduct, images: newImages});
+                        }}
+                        className="flex h-[42px] items-center justify-center border border-dashed border-brand-accent/40 text-brand-metallic hover:text-white transition-all text-[9px] uppercase font-bold tracking-widest mt-6 animate-pulse"
+                      >
+                        <Plus size={14} className="mr-2" /> Add Image Slot
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Product Color Variants section starts here for Edit form */}
@@ -3442,6 +3585,8 @@ export default function Admin() {
                 </div>
               </form>
             </div>
+
+            <AdminPromoUpload />
           </div>
         )}
 

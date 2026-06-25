@@ -50,11 +50,10 @@ export const uploadFileToStorage = async (
     });
 
     return await new Promise<string>((resolve, reject) => {
-      // Timeout to catch CORS issues or hanging uploads
+      // Fast timeout to catch sandbox CORS restrictions without hanging
       const timeoutId = setTimeout(() => {
-        console.warn("Firebase Storage upload timed out (likely CORS issue), canceling...");
         uploadTask.cancel();
-      }, 15000);
+      }, 1000);
 
       uploadTask.on(
         'state_changed',
