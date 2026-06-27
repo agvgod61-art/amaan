@@ -86,7 +86,7 @@ export default function About() {
         <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-white/5 border border-white/10">
           <div className="w-2 h-2 rounded-full bg-brand-accent animate-pulse"></div>
           <span className="text-xs uppercase tracking-widest text-brand-metallic font-bold">
-            System Version <span className="text-white ml-2">v{import.meta.env.VITE_APP_VERSION || "1.0.0"}</span>
+            System Version <span className="text-white ml-2">v{(import.meta as any).env?.VITE_APP_VERSION || "1.0.0"}</span>
           </span>
         </div>
       </section>

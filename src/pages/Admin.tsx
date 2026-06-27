@@ -937,7 +937,9 @@ export default function Admin() {
           try {
              const { deleteFileFromStorage } = await import('../services/storageService');
              await deleteFileFromStorage(url);
-          } catch (e) {}
+          } catch (e) {
+             console.warn("Failed to delete file from storage:", e);
+          }
         }
       };
 

@@ -8,7 +8,22 @@ import globals from "globals";
 export default [
   js.configs.recommended,
   {
-    ignores: ['dist/**/*']
+    ignores: [
+      'dist/**/*',
+      'bundle.js',
+      'demo.cjs',
+      'extract.cjs',
+      'extract2.cjs',
+      'fetch.cjs',
+      'fix-imports.js',
+      'fix-orderby.js',
+      'fix-orders.js',
+      'fix-uid.js',
+      'run-test.js',
+      'test-firestore.js',
+      'long.cjs',
+      'script.ts'
+    ]
   },
   {
     files: ["**/*.{js,jsx,mjs,cjs,ts,tsx}"],

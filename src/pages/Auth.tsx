@@ -30,7 +30,9 @@ export default function Auth() {
       if ((window as any).recaptchaVerifier) {
         try {
           (window as any).recaptchaVerifier.clear();
-        } catch(e) {}
+        } catch(e) {
+          console.warn("Failed to clear recaptcha verifier:", e);
+        }
         (window as any).recaptchaVerifier = null;
       }
     };
@@ -90,7 +92,11 @@ export default function Auth() {
         setError(err.message || 'An error occurred during phone authentication.');
       }
       if ((window as any).recaptchaVerifier) {
-        try { (window as any).recaptchaVerifier.clear(); } catch(e) {}
+        try { 
+          (window as any).recaptchaVerifier.clear(); 
+        } catch(e) {
+          console.warn("Recaptcha verifier clear error:", e);
+        }
         (window as any).recaptchaVerifier = null;
       }
       setShowOtpInput(false);

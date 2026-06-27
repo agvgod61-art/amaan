@@ -200,8 +200,8 @@ service cloud.firestore {
 
     // Analytics
     match /analytics/{docId} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if isAdmin();
+      allow create, update: if docId == 'traffic';
     }
 
     // Users Collection (Cart, Wishlist, etc)

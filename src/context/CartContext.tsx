@@ -106,7 +106,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           quantity: finalQty
         }, { merge: true });
       } catch (err) {
-        handleFirestoreError(err, OperationType.ADD, `cart_items/${itemDocId}`);
+        handleFirestoreError(err, OperationType.CREATE, `cart_items/${itemDocId}`);
       }
     }
   };
