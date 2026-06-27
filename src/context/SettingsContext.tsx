@@ -43,25 +43,13 @@ const SettingsContext = createContext<SettingsContextType>({
 });
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [settings, setSettings] = useState<SiteSettings>(() => {
-    try {
-      const saved = localStorage.getItem("agv_god_settings");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // Apply custom color variable instantly on mount
-        if (parsed.accentColor) {
-          document.documentElement.style.setProperty('--brand-accent-color', parsed.accentColor);
-        }
-        return { ...defaultSettings, ...parsed };
-      }
-    } catch (e) {
-      console.warn("Could not read settings from cache:", e);
-    }
-    return defaultSettings;
-  });
-  const [loading, setLoading] = useState(false);
+  const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Fallback to ensure we don't get stuck loading forever
+    const loadingTimeout = window.setTimeout(() => setLoading(false), 3000);
+
     const fetchSettings = async () => {
       try {
         const docRef = doc(db, "settings", "general");
@@ -69,14 +57,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         
         if (docSnap.exists()) {
           const data = docSnap.data() as SiteSettings;
-          const merged = { ...defaultSettings, ...data };
-          setSettings(merged);
           
-          try {
-            localStorage.setItem("agv_god_settings", JSON.stringify(merged));
-          } catch (storageErr) {
-            console.warn("Failed to save settings to cache:", storageErr);
-          }
+          setSettings({ ...defaultSettings, ...data });
           
           // Update CSS variable for theme color
           if (data.accentColor) {
@@ -85,16 +67,19 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       } catch (error) {
         if (!isQuotaError(error)) {
-          console.warn("Could not load site settings, using current/defaults.", error);
+          console.warn("Could not load site settings, using defaults.", error);
         } else {
-          console.warn("Firestore quota exceeded while loading site settings. Using current/defaults.");
+          console.warn("Firestore quota exceeded while loading site settings. Using defaults.");
         }
       } finally {
+        clearTimeout(loadingTimeout);
         setLoading(false);
       }
     };
 
     fetchSettings();
+    
+    return () => clearTimeout(loadingTimeout);
   }, []);
 
   return (

@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product } from '../data/products';
 import { useAuth } from './AuthContext';
-import { db, handleFirestoreError, OperationType, collection, doc, setDoc, getDocs, deleteDoc, query, where, writeBatch } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { collection, doc, setDoc, getDocs, deleteDoc, query, where, writeBatch } from 'firebase/firestore';
 
 export interface CartItem {
   product: Product;

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { db, auth, doc, getDoc, setDoc, serverTimestamp } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
+import { doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { User, onAuthStateChanged, signOut, sendPasswordResetEmail, updateEmail, updateProfile } from 'firebase/auth';
 
 interface AuthContextType {
@@ -22,16 +23,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        // Set basic user details first to render the website instantly (within a second)
-        const enhancedUser: any = {
-          ...firebaseUser,
-          id: firebaseUser.uid,
-          email: firebaseUser.email,
-        };
-        setUser(enhancedUser);
-        setLoading(false);
-        
-        // Run full database status checks (blocked, incidents, customer doc) in the background
         checkUserStatus(firebaseUser);
       } else {
         setUser(null);
@@ -53,11 +44,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsBlocked(true);
         await signOut(auth);
         setUser(null);
+        setLoading(false);
         return;
       }
       
       setIsBlocked(false);
       
+      const enhancedUser: any = {
+        ...firebaseUser,
+        id: firebaseUser.uid, // Supabase compat
+        email: firebaseUser.email,
+      };
+      
+      setUser(enhancedUser);
+
       // Ensure customer record and custom customer ID
       try {
         const customerDoc = await getDoc(doc(db, "customers", firebaseUser.uid));
@@ -78,15 +78,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
         }
       } catch (e) {
-        console.warn("Error updating customer record:", e);
+        console.error("Error updating customer record:", e);
       }
     } catch (err) {
-      console.warn("Error checking user status:", err);
+      console.error(err);
       const enhancedUser: any = {
         ...firebaseUser,
         id: firebaseUser.uid,
       };
       setUser(enhancedUser);
+    } finally {
+      setLoading(false);
     }
   };
 
