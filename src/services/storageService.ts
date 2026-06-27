@@ -1,7 +1,6 @@
-import { auth, db } from '../lib/firebase';
+import { auth, db, doc, getDoc } from '../lib/firebase';
 import { realStorage } from '../lib/real-firebase';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
-import { doc, getDoc } from 'firebase/firestore';
 
 export const uploadFileToStorage = async (
   file: File | Blob, 

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useWishlist } from "../context/WishlistContext";
 import { useCart } from "../context/CartContext";
 import { cn } from "../lib/utils";
-import { db, isQuotaError } from "../lib/firebase";
+import { db } from "../lib/firebase";
 import { collection, getDocs, query, limit, doc, getDoc, where, getDocsFromCache, getDocFromCache } from "../lib/firebase";
 import { useSettings } from "../context/SettingsContext";
 
@@ -28,8 +28,13 @@ export default function Home() {
   const navigate = useNavigate();
   const { settings } = useSettings();
   const [searchQuery, setSearchQuery] = useState("");
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>(staticProducts.filter(p => !p.status || p.status === 'published'));
+  const [categories, setCategories] = useState<any[]>([
+    { id: "cat-ff", name: "Full-face", image: "https://dainese-cdn.thron.com/delivery/public/image/dainese/35790505-f6f1-41c6-9537-3cbad2f167cc/px6qct/std/960x960/2118395016_027_1.png" },
+    { id: "cat-mc", name: "Motorcycles", image: "https://images.unsplash.com/photo-1626014303757-6bcbe6762b32?q=80&w=200" },
+    { id: "cat-vs", name: "Visor", image: "https://images.unsplash.com/photo-1542124536-1e967396796c?q=80&w=200" },
+    { id: "cat-ac", name: "Accessory", image: "https://images.unsplash.com/photo-1542125387-c71274d94f0a?q=80&w=200" }
+  ]);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [gallery, setGallery] = useState<GalleryConfig>({
     wideImage: "https://images.unsplash.com/photo-1542125387-c71274d94f0a?q=80&w=2070&auto=format&fit=crop",
@@ -83,52 +88,48 @@ export default function Home() {
           });
         }
       } catch (error) {
-        if (isQuotaError(error)) {
-          console.warn("Firestore quota exceeded. Attempting cache fallback.");
-          
-          try {
-            // Try cache for products
-            const pq = query(collection(db, "products"), where("status", "==", "published"), limit(20));
-            const psnap = await getDocsFromCache(pq);
-            if (!psnap.empty) {
-              const cachedProducts = psnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-              setAllProducts(cachedProducts);
-            } else {
-              setAllProducts(staticProducts.filter(p => (!p.status || p.status === 'published') && p.image && (p.image.startsWith('http') || p.image.startsWith('data:image'))));
-            }
-
-            // Try cache for categories
-            const cq = query(collection(db, "categories"), limit(12));
-            const csnap = await getDocsFromCache(cq);
-            if (!csnap.empty) {
-              setCategories(csnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-            }
-
-            // Try cache for gallery
-            const galSnap = await getDocFromCache(doc(db, "site_config", "homepage_gallery"));
-            if (galSnap.exists()) {
-              setGallery(galSnap.data() as GalleryConfig);
-            }
-
-            // Try cache for promo
-            const promoSnap = await getDocFromCache(doc(db, "site_config", "active_promo"));
-            if (promoSnap.exists() && promoSnap.data().active && promoSnap.data().images?.length === 5) {
-              setActivePromo({
-                images: promoSnap.data().images,
-                active: true
-              });
-            }
-          } catch (cacheErr) {
+        console.warn("Error fetching data for home, attempting cache/static fallback:", error);
+        
+        try {
+          // Try cache for products
+          const pq = query(collection(db, "products"), where("status", "==", "published"), limit(20));
+          const psnap = await getDocsFromCache(pq);
+          if (!psnap.empty) {
+            const cachedProducts = psnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+            setAllProducts(cachedProducts);
+          } else {
             setAllProducts(staticProducts.filter(p => (!p.status || p.status === 'published') && p.image && (p.image.startsWith('http') || p.image.startsWith('data:image'))));
-            setCategories([
-              { id: "cat-ff", name: "Full-face", image: "https://dainese-cdn.thron.com/delivery/public/image/dainese/35790505-f6f1-41c6-9537-3cbad2f167cc/px6qct/std/960x960/2118395016_027_1.png" },
-              { id: "cat-mc", name: "Motorcycles", image: "https://images.unsplash.com/photo-1626014303757-6bcbe6762b32?q=80&w=200" },
-              { id: "cat-vs", name: "Visor", image: "https://images.unsplash.com/photo-1542124536-1e967396796c?q=80&w=200" },
-              { id: "cat-ac", name: "Accessory", image: "https://images.unsplash.com/photo-1542125387-c71274d94f0a?q=80&w=200" }
-            ]);
           }
-        } else {
-          console.error("Error fetching data for home:", error);
+
+          // Try cache for categories
+          const cq = query(collection(db, "categories"), limit(12));
+          const csnap = await getDocsFromCache(cq);
+          if (!csnap.empty) {
+            setCategories(csnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+          }
+
+          // Try cache for gallery
+          const galSnap = await getDocFromCache(doc(db, "site_config", "homepage_gallery"));
+          if (galSnap.exists()) {
+            setGallery(galSnap.data() as GalleryConfig);
+          }
+
+          // Try cache for promo
+          const promoSnap = await getDocFromCache(doc(db, "site_config", "active_promo"));
+          if (promoSnap.exists() && promoSnap.data().active && promoSnap.data().images?.length === 5) {
+            setActivePromo({
+              images: promoSnap.data().images,
+              active: true
+            });
+          }
+        } catch (cacheErr) {
+          setAllProducts(staticProducts.filter(p => (!p.status || p.status === 'published') && p.image && (p.image.startsWith('http') || p.image.startsWith('data:image'))));
+          setCategories([
+            { id: "cat-ff", name: "Full-face", image: "https://dainese-cdn.thron.com/delivery/public/image/dainese/35790505-f6f1-41c6-9537-3cbad2f167cc/px6qct/std/960x960/2118395016_027_1.png" },
+            { id: "cat-mc", name: "Motorcycles", image: "https://images.unsplash.com/photo-1626014303757-6bcbe6762b32?q=80&w=200" },
+            { id: "cat-vs", name: "Visor", image: "https://images.unsplash.com/photo-1542124536-1e967396796c?q=80&w=200" },
+            { id: "cat-ac", name: "Accessory", image: "https://images.unsplash.com/photo-1542125387-c71274d94f0a?q=80&w=200" }
+          ]);
         }
       } finally {
         // Data fetch complete

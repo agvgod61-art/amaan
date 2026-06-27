@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product } from '../data/products';
 import { useAuth } from './AuthContext';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { collection, doc, setDoc, getDocs, deleteDoc, query, where, writeBatch } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType, collection, doc, setDoc, getDocs, deleteDoc, query, where, writeBatch } from '../lib/firebase';
 
 export interface CartItem {
   product: Product;
@@ -38,22 +37,39 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         try {
           const snapshot = await getDocs(query(collection(db, 'cart_items'), where('user_id', '==', user.id)));
           if (!snapshot.empty) {
-            setCart(snapshot.docs.map(doc => doc.data() as CartItem));
+            const firebaseItems = snapshot.docs.map(doc => doc.data() as CartItem);
+            setCart(firebaseItems);
+            localStorage.setItem('agv_god_cart', JSON.stringify(firebaseItems));
+          } else {
+            const saved = localStorage.getItem('agv_god_cart');
+            if (saved) {
+              try {
+                setCart(JSON.parse(saved));
+              } catch (parseErr) {
+                console.warn("Failed to parse local cart:", parseErr);
+              }
+            }
           }
         } catch (err) {
           handleFirestoreError(err, OperationType.GET, "cart_items");
+          const saved = localStorage.getItem('agv_god_cart');
+          if (saved) {
+            try {
+              setCart(JSON.parse(saved));
+            } catch (parseErr) {
+              console.warn("Failed to parse fallback local cart:", parseErr);
+            }
+          }
         }
       }
     };
     loadFirebaseCart();
   }, [user]);
 
-  // Handle guest user (e.g., save to LocalStorage instead)
+  // Always save to LocalStorage as a robust fallback
   useEffect(() => {
-    if (!user) {
-      localStorage.setItem('agv_god_cart', JSON.stringify(cart));
-    }
-  }, [cart, user]);
+    localStorage.setItem('agv_god_cart', JSON.stringify(cart));
+  }, [cart]);
 
   const getDocId = (productId: string, size: string, color?: string) => {
     return `${user?.id}_${productId}_${size}${color ? `_${color}` : ''}`;

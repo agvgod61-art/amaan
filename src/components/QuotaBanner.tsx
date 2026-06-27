@@ -5,10 +5,32 @@ import { motion, AnimatePresence } from "motion/react";
 
 export function QuotaBanner() {
   const { isQuotaExceeded, setQuotaExceeded } = useQuota();
+  const [isDismissed, setIsDismissed] = React.useState(() => {
+    try {
+      return localStorage.getItem("agv_quota_banner_dismissed") === "true";
+    } catch (err) {
+      console.warn("localStorage read failed in QuotaBanner:", err);
+      return false;
+    }
+  });
 
   const projectId = "cohesive-bulwark-pskkt";
   const firestoreDatabaseId = "ai-studio-940ddde2-ba02-4398-8a41-6ac0e8e72adf";
   const upgradeUrl = `https://console.firebase.google.com/project/${projectId}/firestore/databases/${firestoreDatabaseId}/data?openUpgradeDialog=true`;
+
+  const handleDismiss = () => {
+    try {
+      localStorage.setItem("agv_quota_banner_dismissed", "true");
+    } catch (err) {
+      console.warn("localStorage write failed in QuotaBanner:", err);
+    }
+    setIsDismissed(true);
+    setQuotaExceeded(false);
+  };
+
+  if (isDismissed || !isQuotaExceeded) {
+    return null;
+  }
 
   return (
     <AnimatePresence>
@@ -41,7 +63,7 @@ export function QuotaBanner() {
                 Upgrade Project in Console
               </a>
               <button 
-                onClick={() => setQuotaExceeded(false)}
+                onClick={handleDismiss}
                 className="p-1.5 hover:bg-white/20 rounded-full transition-colors flex-shrink-0 text-white"
                 aria-label="Dismiss banner"
               >

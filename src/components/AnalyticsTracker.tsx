@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { db } from '../lib/firebase';
-import { doc, increment, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db, doc, increment, setDoc, serverTimestamp } from '../lib/firebase';
 
 export function AnalyticsTracker() {
   const { pathname } = useLocation();
@@ -27,7 +26,7 @@ export function AnalyticsTracker() {
         }
         await setDoc(statRef, updateData, { merge: true });
       } catch (e) {
-        console.error("Failed to track analytics", e);
+        console.warn("Failed to track analytics", e);
       }
     };
     

@@ -164,7 +164,7 @@ export default function Shop() {
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { addToCart, buyNow } = useCart();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>(staticProducts.filter(p => !p.status || p.status === 'published'));
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [lastDoc, setLastDoc] = useState<any>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -329,34 +329,31 @@ export default function Shop() {
 
       setIsQuotaExceeded(false);
     } catch (error) {
-      if (isQuotaError(error)) {
-        setIsQuotaExceeded(true);
-        if (!isLoadMore) {
-          // Robust caching: Try to load from Firestore cache instead of manual localStorage
-          try {
-            const q = query(
-              collection(db, "products"),
-              where("status", "==", "published"),
-              orderBy("createdAt", "desc"),
-              limit(24)
-            );
-            const cacheSnapshot = await getDocsFromCache(q);
-            if (!cacheSnapshot.empty) {
-              const cachedProducts: Product[] = [];
-              cacheSnapshot.forEach((doc) => {
-                cachedProducts.push({ id: doc.id, ...doc.data() } as Product);
-              });
-              setAllProducts(cachedProducts.filter(p => p.image && (p.image.startsWith('http') || p.image.startsWith('data:image'))));
-            } else {
-              setAllProducts(staticProducts.filter(p => (!p.status || p.status === 'published') && p.image && (p.image.startsWith('http') || p.image.startsWith('data:image'))));
-            }
-          } catch (cacheErr) {
+      console.warn("Error fetching live products, using cache/static fallback:", error);
+      setIsQuotaExceeded(true);
+      if (!isLoadMore) {
+        // Robust caching: Try to load from Firestore cache instead of manual localStorage
+        try {
+          const q = query(
+            collection(db, "products"),
+            where("status", "==", "published"),
+            orderBy("createdAt", "desc"),
+            limit(24)
+          );
+          const cacheSnapshot = await getDocsFromCache(q);
+          if (!cacheSnapshot.empty) {
+            const cachedProducts: Product[] = [];
+            cacheSnapshot.forEach((doc) => {
+              cachedProducts.push({ id: doc.id, ...doc.data() } as Product);
+            });
+            setAllProducts(cachedProducts.filter(p => p.image && (p.image.startsWith('http') || p.image.startsWith('data:image'))));
+          } else {
             setAllProducts(staticProducts.filter(p => (!p.status || p.status === 'published') && p.image && (p.image.startsWith('http') || p.image.startsWith('data:image'))));
           }
-          setHasMore(false);
+        } catch (cacheErr) {
+          setAllProducts(staticProducts.filter(p => (!p.status || p.status === 'published') && p.image && (p.image.startsWith('http') || p.image.startsWith('data:image'))));
         }
-      } else {
-        console.error("Error fetching live products:", error);
+        setHasMore(false);
       }
     } finally {
       setIsFetchingMore(false);

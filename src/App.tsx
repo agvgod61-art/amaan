@@ -59,13 +59,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AccessControl({ children }: { children: React.ReactNode }) {
-  const { settings, loading } = useSettings();
+  const { settings } = useSettings();
   const { user } = useAuth();
   const location = useLocation();
-
-  if (loading) {
-    return <div className="min-h-screen bg-brand-black flex items-center justify-center text-white text-xs uppercase tracking-widest animate-pulse">Initializing...</div>;
-  }
 
   // Always allow access to admin and auth pages regardless of site access mode
   if (location.pathname === "/admin" || location.pathname === "/auth") {
