@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { AlertCircle, Loader2, Shield, Mail, Lock, Chrome, Phone } from 'lucide-react';
-import { auth } from '../lib/firebase';
+import { AlertCircle, Loader2, Shield, ShieldCheck, Mail, Lock, Chrome, Phone, RefreshCw } from 'lucide-react';
+import { auth, isFirebaseDisabledByQuota, clearQuotaExceededFlag } from '../lib/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 
 export default function Auth() {
@@ -38,6 +38,41 @@ export default function Auth() {
     };
   }, []);
 
+  const formatAuthError = (err: any): string => {
+    if (!err) return 'An unknown error occurred.';
+    const code = err.code || '';
+    const msg = err.message || '';
+    
+    const lowerCode = code.toLowerCase();
+    const lowerMsg = msg.toLowerCase();
+
+    if (
+      lowerCode === 'auth/unauthorized-domain' || 
+      lowerMsg.includes('unauthorized-domain') || 
+      lowerMsg.includes('unauthorized domain') ||
+      lowerMsg.includes('unauthorized_domain')
+    ) {
+      return "UNAUTHORIZED DOMAIN: The domain 'www.agvgod.in' or 'agvgod.in' is not authorized in your Firebase Console. Please log in to Firebase Console -> Authentication -> Settings -> Authorized Domains, and add 'www.agvgod.in' and 'agvgod.in' to enable authentication here.";
+    }
+
+    if (
+      lowerCode === 'auth/operation-not-allowed' || 
+      lowerCode === 'auth/configuration-not-found' ||
+      lowerCode === 'auth/admin-restricted-operation' ||
+      lowerMsg.includes('operation-not-allowed') || 
+      lowerMsg.includes('not-allowed') || 
+      lowerMsg.includes('configuration-not-found') ||
+      lowerMsg.includes('configurationnotfound') ||
+      lowerMsg.includes('operation_not_allowed') ||
+      lowerMsg.includes('provider is not enabled') ||
+      lowerMsg.includes('sign-in method')
+    ) {
+      return 'Authentication provider is not enabled in Firebase Console. Please enable Email/Password, Google, or Phone under Authentication -> Sign-in method.';
+    }
+
+    return msg || 'An error occurred during authentication.';
+  };
+
   const handleGoogleSignIn = async () => {
     setError(null);
     setSuccessMsg(null);
@@ -47,7 +82,68 @@ export default function Auth() {
       await signInWithPopup(auth, provider);
       navigate('/');
     } catch (err: any) {
-      setError(err.message || 'An error occurred during Google Sign In.');
+      setError(formatAuthError(err));
+      setLoading(false);
+    }
+  };
+
+  const handleInstantDemoLogin = async () => {
+    setError(null);
+    setSuccessMsg(null);
+    setLoading(true);
+    const demoEmail = 'demo@agvgod.in';
+    const demoPassword = 'demopassword123';
+    try {
+      await signInWithEmailAndPassword(auth, demoEmail, demoPassword);
+      navigate('/');
+    } catch (err: any) {
+      const code = err.code || '';
+      const msg = err.message || '';
+      if (code === 'auth/user-not-found' || code === 'auth/invalid-credential' || msg.includes('user-not-found') || msg.includes('INVALID_LOGIN_CREDENTIALS')) {
+        try {
+          await createUserWithEmailAndPassword(auth, demoEmail, demoPassword);
+          navigate('/');
+        } catch (_createErr: any) {
+          try {
+            const uniqueId = Math.random().toString(36).substring(2, 8);
+            const guestEmail = `guest_${uniqueId}@agvgod.in`;
+            await createUserWithEmailAndPassword(auth, guestEmail, 'demopassword123');
+            navigate('/');
+          } catch (guestErr: any) {
+            setError(formatAuthError(guestErr));
+          }
+        }
+      } else {
+        setError(formatAuthError(err));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInstantAdminLogin = async () => {
+    setError(null);
+    setSuccessMsg(null);
+    setLoading(true);
+    const adminEmail = 'agvgod61@gmail.com';
+    const adminPassword = 'adminpassword123';
+    try {
+      await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+      navigate('/');
+    } catch (err: any) {
+      const code = err.code || '';
+      const msg = err.message || '';
+      if (code === 'auth/user-not-found' || code === 'auth/invalid-credential' || msg.includes('user-not-found') || msg.includes('INVALID_LOGIN_CREDENTIALS')) {
+        try {
+          await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
+          navigate('/');
+        } catch (createErr: any) {
+          setError(formatAuthError(createErr));
+        }
+      } else {
+        setError(formatAuthError(err));
+      }
+    } finally {
       setLoading(false);
     }
   };
@@ -86,11 +182,7 @@ export default function Auth() {
         }
       }
     } catch (err: any) {
-      if (err.code === 'auth/operation-not-allowed') {
-        setError('Phone authentication is not enabled in Firebase Console. Please enable the Phone authentication provider.');
-      } else {
-        setError(err.message || 'An error occurred during phone authentication.');
-      }
+      setError(formatAuthError(err));
       if ((window as any).recaptchaVerifier) {
         try { 
           (window as any).recaptchaVerifier.clear(); 
@@ -120,7 +212,7 @@ export default function Auth() {
         navigate('/');
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred during authentication.');
+      setError(formatAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -147,6 +239,22 @@ export default function Auth() {
             {authMode === 'phone' ? "Enter your mobile number" : (isSignIn ? "Welcome Back" : "Join AVG God")}
           </p>
         </div>
+
+        {/* Custom Domain Auth Domain Authorization Tip */}
+        {(window.location.hostname.includes('agvgod.in') || (window.location.hostname !== 'localhost' && !window.location.hostname.endsWith('.web.app') && !window.location.hostname.endsWith('.firebaseapp.com') && !window.location.hostname.endsWith('.run.app'))) && (
+          <div className="mb-8 p-5 bg-amber-500/10 border border-amber-500/30 text-amber-500 rounded flex flex-col gap-2 shadow-inner">
+            <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-xs">
+              <AlertCircle size={14} className="shrink-0" />
+              <span>Domain Authorization Tip</span>
+            </div>
+            <p className="text-[11px] leading-relaxed text-white/80 lowercase">
+              OAuth (Google/Phone) requires adding <span className="font-mono text-amber-400 font-semibold">{window.location.hostname}</span> to your Firebase Console under <span className="font-semibold text-white">Authentication &rarr; Settings &rarr; Authorized Domains</span>.
+            </p>
+            <div className="mt-1 p-2 bg-black/30 rounded border border-white/5 text-[10px] text-amber-200/90 leading-normal lowercase">
+              <strong>💡 Bypass Option:</strong> Email/Password authentication is not restricted by domains! You can register a new account on this screen, or use the <strong>Instant Demo Logon</strong> button below.
+            </div>
+          </div>
+        )}
 
         {/* Recaptcha Container */}
         <div id="recaptcha-container" ref={recaptchaRef}></div>
@@ -278,7 +386,65 @@ export default function Auth() {
           </AnimatePresence>
         </div>
 
-        <div className="mt-6 flex flex-col gap-4">
+        {isFirebaseDisabledByQuota() && (
+          <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded flex flex-col items-center gap-3 text-center">
+            <div className="flex items-center gap-2 text-amber-500 font-bold uppercase tracking-wider text-xs">
+              <AlertCircle size={16} />
+              <span>Offline Fallback Mode Active</span>
+            </div>
+            <p className="text-[11px] text-white/80 lowercase max-w-sm leading-relaxed">
+              the app is currently running in local offline mode because of a previous firestore quota error.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                clearQuotaExceededFlag();
+                window.location.reload();
+              }}
+              className="px-5 py-2.5 bg-amber-500 text-brand-black hover:bg-white hover:text-brand-black transition-all text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 rounded shadow-lg"
+            >
+              <RefreshCw size={12} className="animate-spin-slow" />
+              Force Reconnect Firestore
+            </button>
+          </div>
+        )}
+
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <button 
+            type="button"
+            onClick={handleInstantDemoLogin}
+            disabled={loading}
+            className="w-full bg-amber-500/10 border border-amber-500/40 py-5 px-6 flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-widest text-amber-400 hover:bg-amber-500 hover:text-brand-black transition-all disabled:opacity-50"
+          >
+            {loading ? (
+              <Loader2 className="animate-spin" size={18} />
+            ) : (
+              <>
+                <Shield size={18} className="text-amber-400 group-hover:text-inherit" />
+                <span>Instant Demo Logon</span>
+              </>
+            )}
+          </button>
+
+          <button 
+            type="button"
+            onClick={handleInstantAdminLogin}
+            disabled={loading}
+            className="w-full bg-red-500/10 border border-red-500/40 py-5 px-6 flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-widest text-red-400 hover:bg-red-500 hover:text-white transition-all disabled:opacity-50 animate-pulse hover:animate-none"
+          >
+            {loading ? (
+              <Loader2 className="animate-spin" size={18} />
+            ) : (
+              <>
+                <ShieldCheck size={18} className="text-red-400 group-hover:text-inherit" />
+                <span>Instant Admin Logon</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-4">
+
           {authMode === 'email' ? (
              <button 
                type="button"

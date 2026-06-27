@@ -6,7 +6,7 @@ import { Check, Filter, Star, Lock, Award, Heart, X, Eye, Search, RefreshCw, Sho
 import { cn } from "../lib/utils";
 import { useWishlist } from "../context/WishlistContext";
 import { useCart } from "../context/CartContext";
-import { db, isQuotaError } from "../lib/firebase";
+import { db, isQuotaError, isFirebaseDisabledByQuota, isPermissionError, clearQuotaExceededFlag } from "../lib/firebase";
 import { collection, getDocs, query, limit, startAfter, orderBy, where, getDocsFromCache } from "../lib/firebase";
 import StorageImage from '../components/StorageImage';
 import SEO from '../components/SEO';
@@ -188,6 +188,13 @@ export default function Shop() {
     let interval: ReturnType<typeof setInterval>;
     
     const fetchInventory = async () => {
+      if (isFirebaseDisabledByQuota()) {
+        const fallbackStock = staticProducts
+          .filter(p => (!p.status || p.status === 'published') && p.type === 'Full-face')
+          .reduce((acc, p) => acc + (p.stock || 0), 0);
+        setLiveInventory(fallbackStock);
+        return;
+      }
       try {
         const q = query(
           collection(db, "products"),
@@ -236,6 +243,10 @@ export default function Shop() {
   // Fetch categories from Firestore
   useEffect(() => {
     async function fetchCats() {
+      if (isFirebaseDisabledByQuota()) {
+        console.log("Firebase disabled by quota, skipping categories Firestore read in Shop.tsx");
+        return;
+      }
       try {
         const q = query(collection(db, "categories"), limit(50));
         const snap = await getDocs(q);
@@ -248,7 +259,11 @@ export default function Shop() {
         }
       } catch (error) {
         if (!isQuotaError(error)) {
-          console.error("Error fetching categories:", error);
+          if (isPermissionError(error)) {
+            console.warn("Categories fetching is currently offline due to permissions. Defaulting to static categories.", error);
+          } else {
+            console.error("Error fetching categories:", error);
+          }
         }
       }
     }
@@ -284,6 +299,13 @@ export default function Shop() {
 
   // Fetch products from Firestore with Pagination
   const fetchLiveProducts = async (isLoadMore = false) => {
+    if (isFirebaseDisabledByQuota()) {
+      console.log("Firebase disabled by quota, loading fallback static products in Shop.tsx");
+      setAllProducts(staticProducts.filter(p => (!p.status || p.status === 'published') && p.image && (p.image.startsWith('http') || p.image.startsWith('data:image'))));
+      setHasMore(false);
+      setIsQuotaExceeded(true);
+      return;
+    }
     try {
       if (isLoadMore) {
         setIsFetchingMore(true);
@@ -805,10 +827,20 @@ export default function Shop() {
                 )}
 
                 {isQuotaExceeded && filteredProducts.length > 0 && (
-                  <div className="mt-12 p-6 border border-brand-accent/20 bg-brand-accent/5 text-center">
+                  <div className="mt-12 p-6 border border-brand-accent/20 bg-brand-accent/5 text-center flex flex-col items-center justify-center gap-4">
                     <p className="text-[10px] text-brand-accent uppercase tracking-[0.2em] font-bold">
                       MISSION DATA TEMPORARILY OFFLINE (QUOTA EXCEEDED). PLEASE RETRY LATER.
                     </p>
+                    <button
+                      onClick={() => {
+                        clearQuotaExceededFlag();
+                        window.location.reload();
+                      }}
+                      className="bg-brand-accent hover:bg-white hover:text-black text-white px-6 py-2.5 rounded text-[10px] uppercase font-bold tracking-widest transition-all flex items-center gap-2"
+                    >
+                      <RefreshCw size={12} className="animate-spin-slow" />
+                      Force Reconnect Firestore
+                    </button>
                   </div>
                 )}
               </>

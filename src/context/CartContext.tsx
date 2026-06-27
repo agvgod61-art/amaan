@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product } from '../data/products';
 import { useAuth } from './AuthContext';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { db, handleFirestoreError, OperationType, isFirebaseDisabledByQuota } from '../lib/firebase';
 import { collection, doc, setDoc, getDocs, deleteDoc, query, where, writeBatch } from 'firebase/firestore';
 
 export interface CartItem {
@@ -35,6 +35,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const loadFirebaseCart = async () => {
       if (user) {
+        if (isFirebaseDisabledByQuota()) {
+          console.log("Firebase disabled by quota, skipping Firestore load in CartContext");
+          const saved = localStorage.getItem('agv_god_cart');
+          if (saved) {
+            try {
+              setCart(JSON.parse(saved));
+            } catch (parseErr) {
+              console.warn("Failed to parse local cart:", parseErr);
+            }
+          }
+          return;
+        }
         try {
           const snapshot = await getDocs(query(collection(db, 'cart_items'), where('user_id', '==', user.id)));
           if (!snapshot.empty) {
@@ -91,7 +103,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return [...prev, { product, size, color, quantity: newQty }];
     });
 
-    if (user) {
+    if (user && !isFirebaseDisabledByQuota()) {
       const itemDocId = getDocId(product.id, size, color);
       try {
         const existing = cart.find(item => item.product.id === product.id && item.size === size && item.color === color);
@@ -128,7 +140,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         : item
     ));
 
-    if (user) {
+    if (user && !isFirebaseDisabledByQuota()) {
       const itemDocId = getDocId(productId, size, color);
       try {
         const item = cart.find(i => i.product.id === productId && i.size === size && i.color === color);
@@ -149,7 +161,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const removeFromCart = async (productId: string, size: string, color?: string) => {
     setCart(prev => prev.filter(item => !(item.product.id === productId && item.size === size && item.color === color)));
 
-    if (user) {
+    if (user && !isFirebaseDisabledByQuota()) {
       const itemDocId = getDocId(productId, size, color);
       try {
         await deleteDoc(doc(db, 'cart_items', itemDocId));
@@ -162,7 +174,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const clearCart = async () => {
     setCart([]);
     
-    if (user) {
+    if (user && !isFirebaseDisabledByQuota()) {
       try {
         const batch = writeBatch(db);
         const snapshot = await getDocs(query(collection(db, 'cart_items'), where('user_id', '==', user.id)));

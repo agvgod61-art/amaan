@@ -12,16 +12,64 @@ export enum OperationType {
   WRITE = "write",
 }
 
+export function isPermissionError(error: unknown): boolean {
+  if (!error) return false;
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes("permission") || msg.includes("denied")) return true;
+  }
+  const str = String(error).toLowerCase();
+  if (str.includes("permission") || str.includes("denied")) return true;
+  
+  const errObj = error as any;
+  if (errObj.message && typeof errObj.message === "string") {
+    const msg = errObj.message.toLowerCase();
+    if (msg.includes("permission") || msg.includes("denied")) return true;
+  }
+  if (errObj.code && typeof errObj.code === "string" && (errObj.code.toLowerCase().includes("permission") || errObj.code.toLowerCase().includes("denied"))) {
+    return true;
+  }
+  return false;
+}
+
 export function handleFirestoreError(
   error: unknown,
   operationType: OperationType,
   path: string | null,
 ) {
-  console.error(`Firebase error during ${operationType} on ${path}:`, error);
+  if (isPermissionError(error)) {
+    console.warn(`Firebase permission warning during ${operationType} on ${path}. Please ensure your firestore.rules are deployed in the Firebase Console:`, error);
+  } else {
+    console.error(`Firebase error during ${operationType} on ${path}:`, error);
+  }
   if (isQuotaError(error)) {
+    try {
+      localStorage.setItem("firestore_quota_exceeded", "true");
+    } catch (e) {
+      console.warn("localStorage write failed:", e);
+    }
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("firestore-quota-exceeded"));
     }
+  }
+}
+
+export function isFirebaseDisabledByQuota(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return localStorage.getItem("firestore_quota_exceeded") === "true";
+  } catch (e) {
+    return false;
+  }
+}
+
+export function clearQuotaExceededFlag(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem("firestore_quota_exceeded");
+    localStorage.removeItem("agv_quota_banner_dismissed");
+  } catch (e) {
+    console.warn("localStorage clear failed:", e);
   }
 }
 

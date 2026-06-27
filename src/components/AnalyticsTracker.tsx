@@ -26,8 +26,12 @@ export function AnalyticsTracker() {
           updateData.uniqueVisits = increment(1);
         }
         await setDoc(statRef, updateData, { merge: true });
-      } catch (e) {
-        console.error("Failed to track analytics", e);
+      } catch (e: any) {
+        if (e && (e.code === 'permission-denied' || e.message?.includes('permission') || e.message?.includes('Permission'))) {
+          console.warn("Analytics tracking is currently offline due to Firebase Firestore Security Rules permissions. Please copy and paste the updated firestore.rules to your Firebase Console.");
+        } else {
+          console.warn("Failed to track analytics:", e);
+        }
       }
     };
     

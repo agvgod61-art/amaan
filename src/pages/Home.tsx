@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useWishlist } from "../context/WishlistContext";
 import { useCart } from "../context/CartContext";
 import { cn } from "../lib/utils";
-import { db } from "../lib/firebase";
+import { db, isFirebaseDisabledByQuota } from "../lib/firebase";
 import { collection, getDocs, query, limit, doc, getDoc, where, getDocsFromCache, getDocFromCache } from "../lib/firebase";
 import { useSettings } from "../context/SettingsContext";
 
@@ -47,6 +47,9 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       try {
+        if (isFirebaseDisabledByQuota()) {
+          throw new Error("Quota flag active");
+        }
         // Products
         const pq = query(collection(db, "products"), where("status", "==", "published"), limit(20));
         const psnap = await getDocs(pq);

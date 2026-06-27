@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Package, Clock, ShieldCheck, Search, ChevronRight, Loader2, AlertCircle, ShoppingBag, ChevronDown, ChevronUp, MapPin, CreditCard } from "lucide-react";
-import { db, handleFirestoreError, OperationType, isQuotaError } from "../lib/firebase";
+import { Package, Clock, ShieldCheck, Search, ChevronRight, Loader2, AlertCircle, ShoppingBag, ChevronDown, ChevronUp, MapPin, CreditCard, RefreshCw } from "lucide-react";
+import { db, handleFirestoreError, OperationType, isQuotaError, isFirebaseDisabledByQuota, clearQuotaExceededFlag } from "../lib/firebase";
 import { collection, query, where, getDocs, orderBy, limit, getDocsFromCache } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 import { cn } from "../lib/utils";
@@ -159,10 +159,22 @@ export default function OrderHistory() {
         </div>
 
         {error ? (
-          <div className="bg-brand-accent/5 border border-brand-accent/20 p-8 text-center rounded-sm">
-            <AlertCircle className="text-brand-accent mx-auto mb-4" size={32} />
+          <div className="bg-brand-accent/5 border border-brand-accent/20 p-8 text-center rounded-sm flex flex-col items-center justify-center">
+            <AlertCircle className="text-brand-accent mb-4" size={32} />
             <p className="text-sm font-bold uppercase tracking-widest text-white mb-2">{error}</p>
-            <p className="text-xs text-brand-metallic uppercase tracking-widest">Please try again later or contact squadron support.</p>
+            <p className="text-xs text-brand-metallic uppercase tracking-widest mb-6">Please try again later or contact squadron support.</p>
+            {(error.includes("QUOTA") || isFirebaseDisabledByQuota()) && (
+              <button
+                onClick={() => {
+                  clearQuotaExceededFlag();
+                  window.location.reload();
+                }}
+                className="bg-brand-accent hover:bg-white hover:text-black text-white transition-all px-6 py-2.5 rounded-sm text-[10px] uppercase font-bold tracking-widest flex items-center gap-2"
+              >
+                <RefreshCw size={12} className="animate-pulse" />
+                Force Reconnect Firestore
+              </button>
+            )}
           </div>
         ) : orders.length === 0 ? (
           <div className="bg-white/5 border border-white/10 p-20 text-center rounded-sm">

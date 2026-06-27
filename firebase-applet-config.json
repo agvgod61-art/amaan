@@ -1,10 +1,10 @@
 {
-  "projectId": "cohesive-bulwark-pskkt",
-  "appId": "1:222774696933:web:b996cb00129658901cad0c",
-  "apiKey": "AIzaSyBRCOijJtgYwNqdpeXdi15lZkXRuE9tYQc",
-  "authDomain": "cohesive-bulwark-pskkt.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-940ddde2-ba02-4398-8a41-6ac0e8e72adf",
-  "storageBucket": "cohesive-bulwark-pskkt.firebasestorage.app",
-  "messagingSenderId": "222774696933",
-  "measurementId": ""
+  "projectId": "helmet-938a2",
+  "appId": "1:871531804108:web:95109ca54a50a594925969",
+  "apiKey": "AIzaSyBseurLRrRozZG16lP6HIsMtaaAdgTE0vE",
+  "authDomain": "helmet-938a2.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "helmet-938a2.firebasestorage.app",
+  "messagingSenderId": "871531804108",
+  "measurementId": "G-3KP4LDYC6B"
 }

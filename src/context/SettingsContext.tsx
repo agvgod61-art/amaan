@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { db, isQuotaError } from '../lib/firebase';
+import { db, isQuotaError, isFirebaseDisabledByQuota } from '../lib/firebase';
 import { doc, onSnapshot, getDoc } from '../lib/firebase';
 
 interface SiteSettings {
@@ -51,6 +51,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const loadingTimeout = window.setTimeout(() => setLoading(false), 3000);
 
     const fetchSettings = async () => {
+      if (isFirebaseDisabledByQuota()) {
+        console.log("Firebase disabled by quota, using default site settings.");
+        clearTimeout(loadingTimeout);
+        setLoading(false);
+        return;
+      }
       try {
         const docRef = doc(db, "settings", "general");
         const docSnap = await getDoc(docRef);
