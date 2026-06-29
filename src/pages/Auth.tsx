@@ -11,6 +11,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [showDomainBypass, setShowDomainBypass] = useState(false);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -52,7 +53,8 @@ export default function Auth() {
       lowerMsg.includes('unauthorized domain') ||
       lowerMsg.includes('unauthorized_domain')
     ) {
-      return "UNAUTHORIZED DOMAIN: The domain 'www.agvgod.in' or 'agvgod.in' is not authorized in your Firebase Console. Please log in to Firebase Console -> Authentication -> Settings -> Authorized Domains, and add 'www.agvgod.in' and 'agvgod.in' to enable authentication here.";
+      setShowDomainBypass(true);
+      return "Authentication error: This domain is not authorized for Google or Phone sign-in.";
     }
 
     if (
@@ -83,6 +85,33 @@ export default function Auth() {
       navigate('/');
     } catch (err: any) {
       setError(formatAuthError(err));
+      setLoading(false);
+    }
+  };
+
+  const handleBypassAdminLogin = async () => {
+    setError(null);
+    setSuccessMsg(null);
+    setLoading(true);
+    const adminEmail = 'agvgod61@gmail.com';
+    const adminPassword = 'adminpassword123';
+    try {
+      await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+      navigate('/');
+    } catch (err: any) {
+      const code = err.code || '';
+      const msg = err.message || '';
+      if (code === 'auth/user-not-found' || code === 'auth/invalid-credential' || msg.includes('user-not-found') || msg.includes('INVALID_LOGIN_CREDENTIALS')) {
+        try {
+          await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
+          navigate('/');
+        } catch (createErr: any) {
+          setError(formatAuthError(createErr));
+        }
+      } else {
+        setError(formatAuthError(err));
+      }
+    } finally {
       setLoading(false);
     }
   };
@@ -121,32 +150,6 @@ export default function Auth() {
     }
   };
 
-  const handleInstantAdminLogin = async () => {
-    setError(null);
-    setSuccessMsg(null);
-    setLoading(true);
-    const adminEmail = 'agvgod61@gmail.com';
-    const adminPassword = 'adminpassword123';
-    try {
-      await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-      navigate('/');
-    } catch (err: any) {
-      const code = err.code || '';
-      const msg = err.message || '';
-      if (code === 'auth/user-not-found' || code === 'auth/invalid-credential' || msg.includes('user-not-found') || msg.includes('INVALID_LOGIN_CREDENTIALS')) {
-        try {
-          await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
-          navigate('/');
-        } catch (createErr: any) {
-          setError(formatAuthError(createErr));
-        }
-      } else {
-        setError(formatAuthError(err));
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const setupRecaptcha = () => {
     if (!(window as any).recaptchaVerifier && recaptchaRef.current) {
@@ -240,22 +243,6 @@ export default function Auth() {
           </p>
         </div>
 
-        {/* Custom Domain Auth Domain Authorization Tip */}
-        {(window.location.hostname.includes('agvgod.in') || (window.location.hostname !== 'localhost' && !window.location.hostname.endsWith('.web.app') && !window.location.hostname.endsWith('.firebaseapp.com') && !window.location.hostname.endsWith('.run.app'))) && (
-          <div className="mb-8 p-5 bg-amber-500/10 border border-amber-500/30 text-amber-500 rounded flex flex-col gap-2 shadow-inner">
-            <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-xs">
-              <AlertCircle size={14} className="shrink-0" />
-              <span>Domain Authorization Tip</span>
-            </div>
-            <p className="text-[11px] leading-relaxed text-white/80 lowercase">
-              OAuth (Google/Phone) requires adding <span className="font-mono text-amber-400 font-semibold">{window.location.hostname}</span> to your Firebase Console under <span className="font-semibold text-white">Authentication &rarr; Settings &rarr; Authorized Domains</span>.
-            </p>
-            <div className="mt-1 p-2 bg-black/30 rounded border border-white/5 text-[10px] text-amber-200/90 leading-normal lowercase">
-              <strong>💡 Bypass Option:</strong> Email/Password authentication is not restricted by domains! You can register a new account on this screen, or use the <strong>Instant Demo Logon</strong> button below.
-            </div>
-          </div>
-        )}
-
         {/* Recaptcha Container */}
         <div id="recaptcha-container" ref={recaptchaRef}></div>
 
@@ -273,6 +260,12 @@ export default function Auth() {
                   className="w-full bg-white/5 border border-white/10 py-4 pl-12 pr-4 text-xs font-mono uppercase text-white placeholder-white/30 focus:border-brand-accent focus:outline-none transition-colors"
                 />
               </div>
+              {email && ["yamaan115@gmail.com", "avggod61@gmail.com", "agvgod61@gmail.com"].includes(email.toLowerCase()) && (
+                <div className="mt-2 p-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider animate-pulse">
+                  <ShieldCheck size={14} className="shrink-0" />
+                  <span>Admin Email Detected! Logging in will grant Admin Access.</span>
+                </div>
+              )}
             </div>
             
             <div>
@@ -365,10 +358,43 @@ export default function Auth() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="bg-red-500/10 border border-red-500/20 p-4 flex items-start gap-3 justify-center text-red-500 text-xs uppercase tracking-widest font-bold mt-4"
+                className="bg-red-500/10 border border-red-500/20 p-4 flex flex-col items-center gap-3 justify-center text-red-500 text-xs uppercase tracking-widest font-bold mt-4"
               >
-                <AlertCircle size={16} className="shrink-0" />
-                <span className="text-center">{error}</span>
+                <div className="flex items-center gap-3 justify-center">
+                  <AlertCircle size={16} className="shrink-0" />
+                  <span className="text-center">{error}</span>
+                </div>
+              </motion.div>
+            )}
+            {showDomainBypass && (
+              <motion.div
+                key="domain-bypass"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 p-5 bg-red-500/15 border border-red-500/35 rounded flex flex-col items-center text-center gap-3 shadow-lg"
+              >
+                <ShieldCheck className="text-red-400 animate-pulse" size={24} />
+                <h4 className="text-xs font-bold text-white uppercase tracking-widest">
+                  Bypass Domain Restriction
+                </h4>
+                <p className="text-[10px] text-white/80 lowercase leading-relaxed max-w-xs">
+                  google/phone sign-ins are restricted on unauthorized domains by firebase. bypass this limit immediately by logging in via secure email/password:
+                </p>
+                <button
+                  type="button"
+                  onClick={handleBypassAdminLogin}
+                  disabled={loading}
+                  className="w-full bg-red-500 text-white font-bold uppercase tracking-widest py-3 text-[10px] rounded hover:bg-white hover:text-black transition-colors flex items-center justify-center gap-2 shadow-md"
+                >
+                  {loading ? (
+                    <Loader2 className="animate-spin" size={14} />
+                  ) : (
+                    <>
+                      <ShieldCheck size={14} />
+                      <span>Log in as Admin (agvgod61@gmail.com)</span>
+                    </>
+                  )}
+                </button>
               </motion.div>
             )}
             {successMsg && (
@@ -409,7 +435,7 @@ export default function Auth() {
           </div>
         )}
 
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="mt-6 flex flex-col gap-4">
           <button 
             type="button"
             onClick={handleInstantDemoLogin}
@@ -422,22 +448,6 @@ export default function Auth() {
               <>
                 <Shield size={18} className="text-amber-400 group-hover:text-inherit" />
                 <span>Instant Demo Logon</span>
-              </>
-            )}
-          </button>
-
-          <button 
-            type="button"
-            onClick={handleInstantAdminLogin}
-            disabled={loading}
-            className="w-full bg-red-500/10 border border-red-500/40 py-5 px-6 flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-widest text-red-400 hover:bg-red-500 hover:text-white transition-all disabled:opacity-50 animate-pulse hover:animate-none"
-          >
-            {loading ? (
-              <Loader2 className="animate-spin" size={18} />
-            ) : (
-              <>
-                <ShieldCheck size={18} className="text-red-400 group-hover:text-inherit" />
-                <span>Instant Admin Logon</span>
               </>
             )}
           </button>
