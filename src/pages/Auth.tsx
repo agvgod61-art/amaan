@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { AlertCircle, Loader2, Shield, ShieldCheck, Mail, Lock, Chrome, Phone, RefreshCw, Key } from 'lucide-react';
+import { AlertCircle, Loader2, Shield, ShieldCheck, Mail, Lock, Chrome, Phone, RefreshCw } from 'lucide-react';
 import { auth, isFirebaseDisabledByQuota, clearQuotaExceededFlag } from '../lib/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 
@@ -11,7 +11,6 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [showDomainBypass, setShowDomainBypass] = useState(false);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,18 +28,6 @@ export default function Auth() {
   const isPublicHost = host.includes('agvgod.in') || (host !== 'localhost' && host !== '127.0.0.1' && !host.includes('ais-dev-') && !host.includes('ais-pre-') && !host.includes('.run.app'));
 
   useEffect(() => {
-    // If we are on an unauthorized preview/shared dev domain and NOT public, show bypass options automatically
-    if (!isPublicHost) {
-      if (
-        host !== 'localhost' && 
-        !host.endsWith('.web.app') && 
-        !host.endsWith('.firebaseapp.com') && 
-        !host.endsWith('.run.app')
-      ) {
-        setShowDomainBypass(true);
-      }
-    }
-
     return () => {
       // Cleanup recaptcha on unmount
       if ((window as any).recaptchaVerifier) {
@@ -68,9 +55,6 @@ export default function Auth() {
       lowerMsg.includes('unauthorized domain') ||
       lowerMsg.includes('unauthorized_domain')
     ) {
-      if (!isPublicHost) {
-        setShowDomainBypass(true);
-      }
       return "Authentication error: This domain is not authorized for Google or Phone sign-in.";
     }
 
@@ -111,60 +95,6 @@ export default function Auth() {
       setError(formatAuthError(err));
       setLoading(false);
     }
-  };
-
-  const handleBypassAdminLogin = async () => {
-    setError(null);
-    setSuccessMsg(null);
-    setLoading(true);
-    
-    // List of admin emails we can use for bypass, in order of preference
-    const adminEmails = ['admin@agvgod.in', 'bypass-admin@agvgod.in', 'agvgod61@gmail.com', 'avggod61@gmail.com', 'yamaan115@gmail.com'];
-    const adminPassword = 'adminpassword123';
-    
-    let loggedIn = false;
-    let lastError: any = null;
-    
-    for (const adminEmail of adminEmails) {
-      try {
-        await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-        loggedIn = true;
-        break;
-      } catch (err: any) {
-        lastError = err;
-        const code = err.code || '';
-        const msg = err.message || '';
-        
-        // If the user-not-found/invalid-credential occurred, try creating this admin account
-        if (code === 'auth/user-not-found' || code === 'auth/invalid-credential' || msg.includes('user-not-found') || msg.includes('INVALID_LOGIN_CREDENTIALS')) {
-          try {
-            await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
-            loggedIn = true;
-            break;
-          } catch (createErr: any) {
-            lastError = createErr;
-            // If email is already in use (e.g. they registered agvgod61@gmail.com with a different password/Google provider)
-            // we will continue to the next admin email in the loop!
-            if (createErr.code === 'auth/email-already-in-use' || createErr.message?.includes('already-in-use')) {
-              console.warn(`Admin email ${adminEmail} is already in use. Trying next fallback admin...`);
-              continue;
-            }
-          }
-        }
-      }
-    }
-    
-    if (loggedIn) {
-      navigate('/');
-    } else {
-      // If we failed all admin options, provide a clear, helpful message
-      if (lastError?.code === 'auth/email-already-in-use' || lastError?.message?.includes('already-in-use')) {
-        setError("Admin accounts are already registered with a custom password or Google. Please sign in via the email/password form above using your registered password, or click 'Instant Demo Logon'.");
-      } else {
-        setError(formatAuthError(lastError || new Error("Failed to bypass login.")));
-      }
-    }
-    setLoading(false);
   };
 
   const handleInstantDemoLogin = async () => {
@@ -257,12 +187,17 @@ export default function Auth() {
     setSuccessMsg(null);
     setLoading(true);
 
+    let formattedEmail = email.trim();
+    if (formattedEmail && !formattedEmail.includes('@')) {
+      formattedEmail = `${formattedEmail.toLowerCase()}@agvgod.in`;
+    }
+
     try {
       if (isSignIn) {
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInWithEmailAndPassword(auth, formattedEmail, password);
         navigate('/');
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        await createUserWithEmailAndPassword(auth, formattedEmail, password);
         navigate('/');
       }
     } catch (err: any) {
@@ -303,14 +238,17 @@ export default function Auth() {
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
                 <input
-                  type="email"
+                  type="text"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="EMAIL ADDRESS"
+                  placeholder="USERNAME OR EMAIL ADDRESS"
                   className="w-full bg-white/5 border border-white/10 py-4 pl-12 pr-4 text-xs font-mono uppercase text-white placeholder-white/30 focus:border-brand-accent focus:outline-none transition-colors"
                 />
               </div>
+              <p className="text-[9px] text-white/40 uppercase tracking-widest mt-2 ml-1">
+                Tip: Enter just a username (e.g. <span className="text-amber-400">admin</span> or <span className="text-amber-400">demo</span>) to sign in domain-free.
+              </p>
               {email && ["yamaan115@gmail.com", "avggod61@gmail.com", "agvgod61@gmail.com"].includes(email.toLowerCase()) && (
                 <div className="mt-2 p-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider animate-pulse">
                   <ShieldCheck size={14} className="shrink-0" />
@@ -419,61 +357,7 @@ export default function Auth() {
             )}
           </AnimatePresence>
 
-          <AnimatePresence>
-            {showDomainBypass && (
-              <motion.div
-                key="domain-bypass"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                className="mt-6 p-6 bg-amber-500/10 border border-amber-500/20 rounded flex flex-col items-center text-center gap-4 shadow-lg"
-              >
-                <div className="p-3 bg-amber-500/10 rounded-full text-amber-400">
-                  <Key size={20} className="animate-pulse" />
-                </div>
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-white uppercase tracking-widest">
-                    Bypass Domain Restriction
-                  </h4>
-                  <p className="text-[11px] text-white/70 lowercase leading-relaxed max-w-xs">
-                    google and phone logins are restricted on unauthorized preview domains by firebase settings. bypass this immediately by using the secure, pre-configured administrator or demo credentials below:
-                  </p>
-                </div>
-                <div className="w-full flex flex-col gap-2">
-                  <button
-                    type="button"
-                    onClick={handleBypassAdminLogin}
-                    disabled={loading}
-                    className="w-full bg-amber-500 text-brand-black font-bold uppercase tracking-widest py-3 px-4 text-[10px] rounded hover:bg-white hover:text-black transition-colors flex items-center justify-center gap-2 shadow-md disabled:opacity-50"
-                  >
-                    {loading ? (
-                      <Loader2 className="animate-spin" size={14} />
-                    ) : (
-                      <>
-                        <ShieldCheck size={14} />
-                        <span>Log in as Admin</span>
-                      </>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleInstantDemoLogin}
-                    disabled={loading}
-                    className="w-full bg-white/5 border border-white/10 text-white font-bold uppercase tracking-widest py-3 px-4 text-[10px] rounded hover:bg-white hover:text-black transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {loading ? (
-                      <Loader2 className="animate-spin" size={14} />
-                    ) : (
-                      <>
-                        <Shield size={14} className="text-amber-400" />
-                        <span>Instant Demo Logon</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+
 
           <AnimatePresence>
             {successMsg && (
@@ -514,25 +398,26 @@ export default function Auth() {
           </div>
         )}
 
-        {!isPublicHost && (
-          <div className="mt-6 flex flex-col gap-4">
-            <button 
-              type="button"
-              onClick={handleInstantDemoLogin}
-              disabled={loading}
-              className="w-full bg-amber-500/10 border border-amber-500/40 py-5 px-6 flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-widest text-amber-400 hover:bg-amber-500 hover:text-brand-black transition-all disabled:opacity-50"
-            >
-              {loading ? (
-                <Loader2 className="animate-spin" size={18} />
-              ) : (
-                <>
-                  <Shield size={18} className="text-amber-400 group-hover:text-inherit" />
-                  <span>Instant Demo Logon</span>
-                </>
-              )}
-            </button>
-          </div>
-        )}
+        <div className="mt-6 flex flex-col gap-3">
+          <button 
+            type="button"
+            onClick={handleInstantDemoLogin}
+            disabled={loading}
+            className="w-full bg-amber-500/10 border border-amber-500/40 py-5 px-6 flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-widest text-amber-400 hover:bg-amber-500 hover:text-brand-black transition-all disabled:opacity-50"
+          >
+            {loading ? (
+              <Loader2 className="animate-spin" size={18} />
+            ) : (
+              <>
+                <Shield size={18} className="text-amber-400 group-hover:text-inherit" />
+                <span>Instant Guest / Demo Logon</span>
+              </>
+            )}
+          </button>
+          <p className="text-[10px] text-white/50 uppercase tracking-widest text-center leading-relaxed">
+            Enter the application instantly without Google (Gmail) or Phone Sign-in.
+          </p>
+        </div>
 
         <div className="mt-4 flex flex-col gap-4">
 

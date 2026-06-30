@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { galleryImages as staticImages, GalleryImage } from "../data/gallery";
 import { Instagram, Fullscreen, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { db } from '../lib/firebase';
+import { db, isQuotaError, isPermissionError, isFirebaseDisabledByQuota } from '../lib/firebase';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { getEmbedUrl, isVideoUrl } from "../lib/mediaUtils";
 import StorageImage from '../components/StorageImage';
@@ -18,6 +18,10 @@ const Gallery = () => {
 
   useEffect(() => {
     const fetchGallery = async () => {
+      if (isFirebaseDisabledByQuota()) {
+        setDynamicImages([]);
+        return;
+      }
       setLoading(true);
       try {
         const q = query(collection(db, 'gallery'), orderBy('createdAt', 'desc'));
@@ -40,7 +44,13 @@ const Gallery = () => {
           
         setDynamicImages(fetched);
       } catch (err) {
-        console.error("Gallery fetch failed", err);
+        if (!isQuotaError(err)) {
+          if (isPermissionError(err)) {
+            console.warn("Gallery fetching fell back to static data due to permissions:", err);
+          } else {
+            console.error("Gallery fetch failed", err);
+          }
+        }
         setDynamicImages([]); 
       } finally {
         setLoading(false);

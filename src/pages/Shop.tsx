@@ -218,7 +218,11 @@ export default function Shop() {
         }
       } catch (err) {
         if (!isQuotaError(err)) {
-          console.error("Inventory error", err);
+          if (isPermissionError(err)) {
+            console.warn("Inventory fetch fell back to static data due to permissions:", err);
+          } else {
+            console.error("Inventory error", err);
+          }
         }
         const fallbackStock = staticProducts
           .filter(p => (!p.status || p.status === 'published') && p.type === 'Full-face')
