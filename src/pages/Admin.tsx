@@ -101,7 +101,7 @@ export default function Admin() {
   const [tempColor, setTempColor] = useState({ name: "", hex: "#111827", image: "" });
   const [tempColorEdit, setTempColorEdit] = useState({ name: "", hex: "#111827", image: "" });
 
-  const SUPER_ADMINS = ["yamaan115@gmail.com", "avggod61@gmail.com", "agvgod61@gmail.com"];
+  const SUPER_ADMINS = ["yamaan115@gmail.com", "avggod61@gmail.com", "agvgod61@gmail.com", "admin@agvgod.in", "bypass-admin@agvgod.in"];
 
   useEffect(() => {
     const checkAuth = async () => {

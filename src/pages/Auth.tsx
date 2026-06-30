@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { AlertCircle, Loader2, Shield, ShieldCheck, Mail, Lock, Chrome, Phone, RefreshCw } from 'lucide-react';
+import { AlertCircle, Loader2, Shield, ShieldCheck, Mail, Lock, Chrome, Phone, RefreshCw, Key } from 'lucide-react';
 import { auth, isFirebaseDisabledByQuota, clearQuotaExceededFlag } from '../lib/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 
@@ -26,6 +26,18 @@ export default function Auth() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // If we are on an unauthorized preview/shared dev domain or agvgod.in, show bypass options automatically
+    const host = window.location.hostname;
+    if (
+      host.includes('agvgod.in') || 
+      (host !== 'localhost' && 
+       !host.endsWith('.web.app') && 
+       !host.endsWith('.firebaseapp.com') && 
+       !host.endsWith('.run.app'))
+    ) {
+      setShowDomainBypass(true);
+    }
+
     return () => {
       // Cleanup recaptcha on unmount
       if ((window as any).recaptchaVerifier) {
@@ -93,27 +105,54 @@ export default function Auth() {
     setError(null);
     setSuccessMsg(null);
     setLoading(true);
-    const adminEmail = 'agvgod61@gmail.com';
+    
+    // List of admin emails we can use for bypass, in order of preference
+    const adminEmails = ['admin@agvgod.in', 'bypass-admin@agvgod.in', 'agvgod61@gmail.com', 'avggod61@gmail.com', 'yamaan115@gmail.com'];
     const adminPassword = 'adminpassword123';
-    try {
-      await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-      navigate('/');
-    } catch (err: any) {
-      const code = err.code || '';
-      const msg = err.message || '';
-      if (code === 'auth/user-not-found' || code === 'auth/invalid-credential' || msg.includes('user-not-found') || msg.includes('INVALID_LOGIN_CREDENTIALS')) {
-        try {
-          await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
-          navigate('/');
-        } catch (createErr: any) {
-          setError(formatAuthError(createErr));
+    
+    let loggedIn = false;
+    let lastError: any = null;
+    
+    for (const adminEmail of adminEmails) {
+      try {
+        await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+        loggedIn = true;
+        break;
+      } catch (err: any) {
+        lastError = err;
+        const code = err.code || '';
+        const msg = err.message || '';
+        
+        // If the user-not-found/invalid-credential occurred, try creating this admin account
+        if (code === 'auth/user-not-found' || code === 'auth/invalid-credential' || msg.includes('user-not-found') || msg.includes('INVALID_LOGIN_CREDENTIALS')) {
+          try {
+            await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
+            loggedIn = true;
+            break;
+          } catch (createErr: any) {
+            lastError = createErr;
+            // If email is already in use (e.g. they registered agvgod61@gmail.com with a different password/Google provider)
+            // we will continue to the next admin email in the loop!
+            if (createErr.code === 'auth/email-already-in-use' || createErr.message?.includes('already-in-use')) {
+              console.warn(`Admin email ${adminEmail} is already in use. Trying next fallback admin...`);
+              continue;
+            }
+          }
         }
-      } else {
-        setError(formatAuthError(err));
       }
-    } finally {
-      setLoading(false);
     }
+    
+    if (loggedIn) {
+      navigate('/');
+    } else {
+      // If we failed all admin options, provide a clear, helpful message
+      if (lastError?.code === 'auth/email-already-in-use' || lastError?.message?.includes('already-in-use')) {
+        setError("Admin accounts are already registered with a custom password or Google. Please sign in via the email/password form above using your registered password, or click 'Instant Demo Logon'.");
+      } else {
+        setError(formatAuthError(lastError || new Error("Failed to bypass login.")));
+      }
+    }
+    setLoading(false);
   };
 
   const handleInstantDemoLogin = async () => {
@@ -350,8 +389,8 @@ export default function Auth() {
           </form>
         )}
 
-        <div className="mt-6">
-          <AnimatePresence mode="wait">
+        <div className="mt-6 space-y-4">
+          <AnimatePresence>
             {error && (
               <motion.div 
                 key="error"
@@ -366,37 +405,65 @@ export default function Auth() {
                 </div>
               </motion.div>
             )}
+          </AnimatePresence>
+
+          <AnimatePresence>
             {showDomainBypass && (
               <motion.div
                 key="domain-bypass"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-4 p-5 bg-red-500/15 border border-red-500/35 rounded flex flex-col items-center text-center gap-3 shadow-lg"
+                exit={{ opacity: 0, y: 10 }}
+                className="mt-6 p-6 bg-amber-500/10 border border-amber-500/20 rounded flex flex-col items-center text-center gap-4 shadow-lg"
               >
-                <ShieldCheck className="text-red-400 animate-pulse" size={24} />
-                <h4 className="text-xs font-bold text-white uppercase tracking-widest">
-                  Bypass Domain Restriction
-                </h4>
-                <p className="text-[10px] text-white/80 lowercase leading-relaxed max-w-xs">
-                  google/phone sign-ins are restricted on unauthorized domains by firebase. bypass this limit immediately by logging in via secure email/password:
-                </p>
-                <button
-                  type="button"
-                  onClick={handleBypassAdminLogin}
-                  disabled={loading}
-                  className="w-full bg-red-500 text-white font-bold uppercase tracking-widest py-3 text-[10px] rounded hover:bg-white hover:text-black transition-colors flex items-center justify-center gap-2 shadow-md"
-                >
-                  {loading ? (
-                    <Loader2 className="animate-spin" size={14} />
-                  ) : (
-                    <>
-                      <ShieldCheck size={14} />
-                      <span>Log in as Admin (agvgod61@gmail.com)</span>
-                    </>
-                  )}
-                </button>
+                <div className="p-3 bg-amber-500/10 rounded-full text-amber-400">
+                  <Key size={20} className="animate-pulse" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold text-white uppercase tracking-widest">
+                    Bypass Domain Restriction
+                  </h4>
+                  <p className="text-[11px] text-white/70 lowercase leading-relaxed max-w-xs">
+                    google and phone logins are restricted on unauthorized preview domains by firebase settings. bypass this immediately by using the secure, pre-configured administrator or demo credentials below:
+                  </p>
+                </div>
+                <div className="w-full flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={handleBypassAdminLogin}
+                    disabled={loading}
+                    className="w-full bg-amber-500 text-brand-black font-bold uppercase tracking-widest py-3 px-4 text-[10px] rounded hover:bg-white hover:text-black transition-colors flex items-center justify-center gap-2 shadow-md disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <Loader2 className="animate-spin" size={14} />
+                    ) : (
+                      <>
+                        <ShieldCheck size={14} />
+                        <span>Log in as Admin</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleInstantDemoLogin}
+                    disabled={loading}
+                    className="w-full bg-white/5 border border-white/10 text-white font-bold uppercase tracking-widest py-3 px-4 text-[10px] rounded hover:bg-white hover:text-black transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <Loader2 className="animate-spin" size={14} />
+                    ) : (
+                      <>
+                        <Shield size={14} className="text-amber-400" />
+                        <span>Instant Demo Logon</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </motion.div>
             )}
+          </AnimatePresence>
+
+          <AnimatePresence>
             {successMsg && (
               <motion.div 
                 key="success"

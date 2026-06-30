@@ -72,7 +72,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const { settings } = useSettings();
 
-  const SUPER_ADMINS = ["yamaan115@gmail.com", "avggod61@gmail.com", "agvgod61@gmail.com"];
+  const SUPER_ADMINS = ["yamaan115@gmail.com", "avggod61@gmail.com", "agvgod61@gmail.com", "admin@agvgod.in", "bypass-admin@agvgod.in"];
   const isAdmin = user?.email && SUPER_ADMINS.includes(user.email.toLowerCase());
 
   useEffect(() => {

@@ -37,9 +37,7 @@ export default function OrderHistory() {
         // Query by email to find all orders associated with this rider
         const q = query(
           collection(db, ordersPath),
-          where("user_email", "==", user.email),
-          orderBy("created_at", "desc"),
-          limit(20)
+          where("user_email", "==", user.email)
         );
         
         const querySnapshot = await getDocs(q);
@@ -48,20 +46,31 @@ export default function OrderHistory() {
           ...doc.data()
         }));
         
-        setOrders(ordersData);
+        // Sort in memory by created_at descending
+        ordersData.sort((a: any, b: any) => {
+          const timeA = a.created_at?.toMillis ? a.created_at.toMillis() : (a.created_at?.seconds ? a.created_at.seconds * 1000 : 0);
+          const timeB = b.created_at?.toMillis ? b.created_at.toMillis() : (b.created_at?.seconds ? b.created_at.seconds * 1000 : 0);
+          return timeB - timeA;
+        });
+        
+        setOrders(ordersData.slice(0, 20));
       } catch (err: any) {
         if (isQuotaError(err)) {
           console.warn("Quota exceeded in OrderHistory. Attempting cache fallback.");
           try {
             const q = query(
               collection(db, ordersPath),
-              where("user_email", "==", user.email),
-              orderBy("created_at", "desc"),
-              limit(20)
+              where("user_email", "==", user.email)
             );
             const cacheSnap = await getDocsFromCache(q);
             if (!cacheSnap.empty) {
-              setOrders(cacheSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+              const cacheData = cacheSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+              cacheData.sort((a: any, b: any) => {
+                const timeA = a.created_at?.toMillis ? a.created_at.toMillis() : (a.created_at?.seconds ? a.created_at.seconds * 1000 : 0);
+                const timeB = b.created_at?.toMillis ? b.created_at.toMillis() : (b.created_at?.seconds ? b.created_at.seconds * 1000 : 0);
+                return timeB - timeA;
+              });
+              setOrders(cacheData.slice(0, 20));
               setError("VIEWING OFFLINE ORDER HISTORY (QUOTA EXCEEDED).");
             } else {
               setError("MISSION DATA TEMPORARILY OFFLINE (QUOTA EXCEEDED). PLEASE RETRY LATER.");
@@ -74,19 +83,8 @@ export default function OrderHistory() {
         }
         
         console.error("Error fetching orders:", err);
-        // If it's an index error, we might need to handle it or provide a fallback
-        if (err.message?.includes("index")) {
-          // Fallback query if index isn't ready
-          const qSimple = query(
-            collection(db, ordersPath),
-            where("user_email", "==", user.email)
-          );
-          const qSnapSimple = await getDocs(qSimple);
-          setOrders(qSnapSimple.docs.map(d => ({ id: d.id, ...d.data() })));
-        } else {
-          setError("FAILED TO RETRIEVE ORDER DATA");
-          handleFirestoreError(err, OperationType.LIST, ordersPath);
-        }
+        setError("FAILED TO RETRIEVE ORDER DATA");
+        handleFirestoreError(err, OperationType.LIST, ordersPath);
       } finally {
         setLoading(false);
       }

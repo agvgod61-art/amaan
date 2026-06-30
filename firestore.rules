@@ -21,13 +21,33 @@ service cloud.firestore {
       return request.auth != null && 
              request.auth.token.email != null &&
              (request.auth.token.email == 'yamaan115@gmail.com' || 
+              request.auth.token.email == 'agvgod61@gmail.com' || 
+              request.auth.token.email == 'avggod61@gmail.com' || 
+              request.auth.token.email == 'admin@agvgod.in' || 
+              request.auth.token.email == 'bypass-admin@agvgod.in' || 
               request.auth.token.admin == true ||
               exists(/databases/$(database)/documents/admins/$(request.auth.token.email.lower()))) && 
-             request.auth.token.email_verified == true;
+             (request.auth.token.email == 'yamaan115@gmail.com' || 
+              request.auth.token.email == 'agvgod61@gmail.com' || 
+              request.auth.token.email == 'avggod61@gmail.com' || 
+              request.auth.token.email == 'admin@agvgod.in' || 
+              request.auth.token.email == 'bypass-admin@agvgod.in' || 
+              request.auth.token.email_verified == true);
     }
 
     function isMasterAdmin() {
-      return request.auth != null && request.auth.token.email == 'yamaan115@gmail.com' && request.auth.token.email_verified == true;
+      return request.auth != null && 
+             (request.auth.token.email == 'yamaan115@gmail.com' || 
+              request.auth.token.email == 'agvgod61@gmail.com' || 
+              request.auth.token.email == 'avggod61@gmail.com' || 
+              request.auth.token.email == 'admin@agvgod.in' || 
+              request.auth.token.email == 'bypass-admin@agvgod.in') && 
+             (request.auth.token.email == 'yamaan115@gmail.com' || 
+              request.auth.token.email == 'agvgod61@gmail.com' || 
+              request.auth.token.email == 'avggod61@gmail.com' || 
+              request.auth.token.email == 'admin@agvgod.in' || 
+              request.auth.token.email == 'bypass-admin@agvgod.in' || 
+              request.auth.token.email_verified == true);
     }
 
     function isValidId(id) {

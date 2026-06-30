@@ -112,9 +112,7 @@ function ProductDetail() {
       try {
         const q = query(
           collection(db, "reviews"),
-          where("productId", "==", id),
-          orderBy("createdAt", "desc"),
-          limit(20)
+          where("productId", "==", id)
         );
 
         const snapshot = await getDocs(q);
@@ -123,7 +121,15 @@ function ProductDetail() {
           ...doc.data(),
           date: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
         }));
-        setReviews(fetchedReviews);
+        
+        // Sort in memory by createdAt descending
+        fetchedReviews.sort((a: any, b: any) => {
+          const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+          const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+          return timeB - timeA;
+        });
+
+        setReviews(fetchedReviews.slice(0, 20));
       } catch (error) {
         if (!isQuotaError(error)) {
           console.error("Error fetching reviews:", error);

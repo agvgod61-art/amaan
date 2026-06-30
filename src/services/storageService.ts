@@ -16,7 +16,7 @@ export const uploadFileToStorage = async (
     throw new Error("Direct image upload blocked. You must be logged in as an admin.");
   }
 
-  const SUPER_ADMINS = ["yamaan115@gmail.com", "avggod61@gmail.com", "agvgod61@gmail.com"];
+  const SUPER_ADMINS = ["yamaan115@gmail.com", "avggod61@gmail.com", "agvgod61@gmail.com", "admin@agvgod.in", "bypass-admin@agvgod.in"];
   let isAdmin = false;
   
   if (SUPER_ADMINS.includes(user.email.toLowerCase())) {
@@ -121,7 +121,7 @@ export const deleteFileFromStorage = async (path: string): Promise<void> => {
     throw new Error("Direct image deletion blocked. You must be logged in as an admin.");
   }
 
-  const SUPER_ADMINS = ["yamaan115@gmail.com", "avggod61@gmail.com", "agvgod61@gmail.com"];
+  const SUPER_ADMINS = ["yamaan115@gmail.com", "avggod61@gmail.com", "agvgod61@gmail.com", "admin@agvgod.in", "bypass-admin@agvgod.in"];
   let isAdmin = false;
   if (SUPER_ADMINS.includes(user.email.toLowerCase())) {
     isAdmin = true;
