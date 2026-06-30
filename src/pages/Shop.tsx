@@ -198,14 +198,14 @@ export default function Shop() {
       try {
         const q = query(
           collection(db, "products"),
-          where("status", "==", "published"),
           where("type", "==", "Full-face")
         );
         const snap = await getDocs(q);
         let stock = 0;
         snap.forEach(doc => {
           const data = doc.data();
-          if (data.stock) stock += Number(data.stock);
+          const isPublished = !data.status || data.status === 'published';
+          if (isPublished && data.stock) stock += Number(data.stock);
         });
         
         if (stock === 0) {
@@ -311,12 +311,13 @@ export default function Shop() {
         setIsFetchingMore(true);
       }
 
-      // 1. Build optimized query (SERVER-SIDE FILTERING)
+      // 1. Build optimized query (No composite index required!)
+      // Since we filter "published" in-memory, we can query a slightly higher limit (e.g., 16)
+      // to ensure we receive enough published products per page.
       let q = query(
         collection(db, "products"),
-        where("status", "==", "published"), // Only fetch what we need
         orderBy("createdAt", "desc"),
-        limit(12) // Limit reads
+        limit(16)
       );
 
       if (isLoadMore && lastDoc) {
@@ -330,8 +331,9 @@ export default function Shop() {
       const newProducts: Product[] = [];
       querySnapshot.forEach((doc) => {
         const p = { id: doc.id, ...doc.data() } as Product;
-        // Basic safety check for data integrity
-        if (p.image && (p.image.startsWith('http') || p.image.startsWith('data:image'))) {
+        // Filter "published" status in-memory to bypass composite index restriction
+        const isPublished = !p.status || p.status === 'published';
+        if (isPublished && p.image && (p.image.startsWith('http') || p.image.startsWith('data:image'))) {
           newProducts.push(p);
         }
       });
@@ -343,7 +345,7 @@ export default function Shop() {
       }
 
       // If we got fewer than the limit, there's no more data
-      if (querySnapshot.docs.length < 12) {
+      if (querySnapshot.docs.length < 16) {
         setHasMore(false);
       } else {
         setHasMore(true);
@@ -358,15 +360,18 @@ export default function Shop() {
         try {
           const q = query(
             collection(db, "products"),
-            where("status", "==", "published"),
             orderBy("createdAt", "desc"),
-            limit(24)
+            limit(30)
           );
           const cacheSnapshot = await getDocsFromCache(q);
           if (!cacheSnapshot.empty) {
             const cachedProducts: Product[] = [];
             cacheSnapshot.forEach((doc) => {
-              cachedProducts.push({ id: doc.id, ...doc.data() } as Product);
+              const p = { id: doc.id, ...doc.data() } as Product;
+              const isPublished = !p.status || p.status === 'published';
+              if (isPublished) {
+                cachedProducts.push(p);
+              }
             });
             setAllProducts(cachedProducts.filter(p => p.image && (p.image.startsWith('http') || p.image.startsWith('data:image'))));
           } else {

@@ -25,17 +25,20 @@ export default function Auth() {
   
   const navigate = useNavigate();
 
+  const host = window.location.hostname;
+  const isPublicHost = host.includes('agvgod.in') || (host !== 'localhost' && host !== '127.0.0.1' && !host.includes('ais-dev-') && !host.includes('ais-pre-') && !host.includes('.run.app'));
+
   useEffect(() => {
-    // If we are on an unauthorized preview/shared dev domain or agvgod.in, show bypass options automatically
-    const host = window.location.hostname;
-    if (
-      host.includes('agvgod.in') || 
-      (host !== 'localhost' && 
-       !host.endsWith('.web.app') && 
-       !host.endsWith('.firebaseapp.com') && 
-       !host.endsWith('.run.app'))
-    ) {
-      setShowDomainBypass(true);
+    // If we are on an unauthorized preview/shared dev domain and NOT public, show bypass options automatically
+    if (!isPublicHost) {
+      if (
+        host !== 'localhost' && 
+        !host.endsWith('.web.app') && 
+        !host.endsWith('.firebaseapp.com') && 
+        !host.endsWith('.run.app')
+      ) {
+        setShowDomainBypass(true);
+      }
     }
 
     return () => {
@@ -65,7 +68,9 @@ export default function Auth() {
       lowerMsg.includes('unauthorized domain') ||
       lowerMsg.includes('unauthorized_domain')
     ) {
-      setShowDomainBypass(true);
+      if (!isPublicHost) {
+        setShowDomainBypass(true);
+      }
       return "Authentication error: This domain is not authorized for Google or Phone sign-in.";
     }
 
@@ -81,6 +86,13 @@ export default function Auth() {
       lowerMsg.includes('provider is not enabled') ||
       lowerMsg.includes('sign-in method')
     ) {
+      const host = window.location.hostname;
+      const isPublic = host !== 'localhost' && host !== '127.0.0.1';
+      if (isPublic) {
+        return isPublicHost
+          ? 'Authentication service is currently undergoing system setup or maintenance. Please try again later.'
+          : 'Authentication service is currently undergoing system setup or maintenance. Please try again later, or use the "Instant Demo Logon" below to access the application instantly.';
+      }
       return 'Authentication provider is not enabled in Firebase Console. Please enable Email/Password, Google, or Phone under Authentication -> Sign-in method.';
     }
 
@@ -502,23 +514,25 @@ export default function Auth() {
           </div>
         )}
 
-        <div className="mt-6 flex flex-col gap-4">
-          <button 
-            type="button"
-            onClick={handleInstantDemoLogin}
-            disabled={loading}
-            className="w-full bg-amber-500/10 border border-amber-500/40 py-5 px-6 flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-widest text-amber-400 hover:bg-amber-500 hover:text-brand-black transition-all disabled:opacity-50"
-          >
-            {loading ? (
-              <Loader2 className="animate-spin" size={18} />
-            ) : (
-              <>
-                <Shield size={18} className="text-amber-400 group-hover:text-inherit" />
-                <span>Instant Demo Logon</span>
-              </>
-            )}
-          </button>
-        </div>
+        {!isPublicHost && (
+          <div className="mt-6 flex flex-col gap-4">
+            <button 
+              type="button"
+              onClick={handleInstantDemoLogin}
+              disabled={loading}
+              className="w-full bg-amber-500/10 border border-amber-500/40 py-5 px-6 flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-widest text-amber-400 hover:bg-amber-500 hover:text-brand-black transition-all disabled:opacity-50"
+            >
+              {loading ? (
+                <Loader2 className="animate-spin" size={18} />
+              ) : (
+                <>
+                  <Shield size={18} className="text-amber-400 group-hover:text-inherit" />
+                  <span>Instant Demo Logon</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
 
         <div className="mt-4 flex flex-col gap-4">
 
