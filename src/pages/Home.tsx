@@ -46,96 +46,121 @@ export default function Home() {
 
   useEffect(() => {
     async function fetchData() {
-      try {
-        if (isFirebaseDisabledByQuota()) {
-          throw new Error("Quota flag active");
-        }
-        // Products
-        const pq = query(collection(db, "products"), where("status", "==", "published"), limit(20));
-        const psnap = await getDocs(pq);
-        
-        const isInvalidUrl = (url: string) => !url || !(url.startsWith('http') || url.startsWith('data:image'));
-        
-        const liveProducts: Product[] = psnap.docs
-          .map(doc => ({ id: doc.id, ...doc.data() } as Product))
-          .filter(p => {
-            // ONLY show published products
-            // If status is missing, we assume published for old ones, 
-            // but the user wants strict admin permission, so we'll be safe.
-            const isPublished = !p.status || p.status === 'published';
-            const hasValidImage = !isInvalidUrl(p.image);
-            return isPublished && hasValidImage;
-          });
-          
-        liveProducts.sort((a, b) => ((b.createdAt as any)?.seconds || 0) - ((a.createdAt as any)?.seconds || 0));
-        setAllProducts(liveProducts);
+      const isQuotaActive = isFirebaseDisabledByQuota();
 
-        // Categories
-        const cq = query(collection(db, "categories"), limit(12));
-        const csnap = await getDocs(cq);
-        const cats = csnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setCategories(cats);
-
-        // Gallery
-        const galleryDoc = await getDoc(doc(db, "site_config", "homepage_gallery"));
-        if (galleryDoc.exists()) {
-          setGallery(galleryDoc.data() as GalleryConfig);
-        }
-
-        // Active Promo
-        const promoSnap = await getDoc(doc(db, "site_config", "active_promo"));
-        if (promoSnap.exists() && promoSnap.data().active && promoSnap.data().images?.length === 5) {
-          setActivePromo({
-            images: promoSnap.data().images,
-            active: true
-          });
-        }
-      } catch (error) {
-        console.warn("Error fetching data for home, attempting cache/static fallback:", error);
-        
+      // 1. Fetch Products
+      if (!isQuotaActive) {
         try {
-          // Try cache for products
           const pq = query(collection(db, "products"), where("status", "==", "published"), limit(20));
-          const psnap = await getDocsFromCache(pq);
-          if (!psnap.empty) {
-            const cachedProducts = psnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-            setAllProducts(cachedProducts);
-          } else {
+          const psnap = await getDocs(pq);
+          const isInvalidUrl = (url: string) => !url || !(url.startsWith('http') || url.startsWith('data:image'));
+          const liveProducts: Product[] = psnap.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as Product))
+            .filter(p => {
+              const isPublished = !p.status || p.status === 'published';
+              const hasValidImage = !isInvalidUrl(p.image);
+              return isPublished && hasValidImage;
+            });
+          liveProducts.sort((a, b) => ((b.createdAt as any)?.seconds || 0) - ((a.createdAt as any)?.seconds || 0));
+          setAllProducts(liveProducts);
+        } catch (error) {
+          console.warn("Products live fetch failed, trying cache:", error);
+          try {
+            const pq = query(collection(db, "products"), where("status", "==", "published"), limit(20));
+            const psnap = await getDocsFromCache(pq);
+            if (!psnap.empty) {
+              const cachedProducts = psnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+              setAllProducts(cachedProducts);
+            } else {
+              setAllProducts(staticProducts.filter(p => (!p.status || p.status === 'published') && p.image && (p.image.startsWith('http') || p.image.startsWith('data:image'))));
+            }
+          } catch (cacheErr) {
             setAllProducts(staticProducts.filter(p => (!p.status || p.status === 'published') && p.image && (p.image.startsWith('http') || p.image.startsWith('data:image'))));
           }
+        }
+      } else {
+        setAllProducts(staticProducts.filter(p => (!p.status || p.status === 'published') && p.image && (p.image.startsWith('http') || p.image.startsWith('data:image'))));
+      }
 
-          // Try cache for categories
+      // 2. Fetch Categories
+      if (!isQuotaActive) {
+        try {
           const cq = query(collection(db, "categories"), limit(12));
-          const csnap = await getDocsFromCache(cq);
-          if (!csnap.empty) {
-            setCategories(csnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+          const csnap = await getDocs(cq);
+          const cats = csnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setCategories(cats);
+        } catch (error) {
+          console.warn("Categories live fetch failed, trying cache:", error);
+          try {
+            const cq = query(collection(db, "categories"), limit(12));
+            const csnap = await getDocsFromCache(cq);
+            if (!csnap.empty) {
+              setCategories(csnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            } else {
+              throw new Error("No cached categories");
+            }
+          } catch (cacheErr) {
+            setCategories([
+              { id: "cat-ff", name: "Full-face", image: "https://dainese-cdn.thron.com/delivery/public/image/dainese/35790505-f6f1-41c6-9537-3cbad2f167cc/px6qct/std/960x960/2118395016_027_1.png" },
+              { id: "cat-mc", name: "Motorcycles", image: "https://images.unsplash.com/photo-1626014303757-6bcbe6762b32?q=80&w=200" },
+              { id: "cat-vs", name: "Visor", image: "https://images.unsplash.com/photo-1542124536-1e967396796c?q=80&w=200" },
+              { id: "cat-ac", name: "Accessory", image: "https://images.unsplash.com/photo-1542125387-c71274d94f0a?q=80&w=200" }
+            ]);
           }
+        }
+      } else {
+        setCategories([
+          { id: "cat-ff", name: "Full-face", image: "https://dainese-cdn.thron.com/delivery/public/image/dainese/35790505-f6f1-41c6-9537-3cbad2f167cc/px6qct/std/960x960/2118395016_027_1.png" },
+          { id: "cat-mc", name: "Motorcycles", image: "https://images.unsplash.com/photo-1626014303757-6bcbe6762b32?q=80&w=200" },
+          { id: "cat-vs", name: "Visor", image: "https://images.unsplash.com/photo-1542124536-1e967396796c?q=80&w=200" },
+          { id: "cat-ac", name: "Accessory", image: "https://images.unsplash.com/photo-1542125387-c71274d94f0a?q=80&w=200" }
+        ]);
+      }
 
-          // Try cache for gallery
-          const galSnap = await getDocFromCache(doc(db, "site_config", "homepage_gallery"));
-          if (galSnap.exists()) {
-            setGallery(galSnap.data() as GalleryConfig);
+      // 3. Fetch Gallery
+      if (!isQuotaActive) {
+        try {
+          const galleryDoc = await getDoc(doc(db, "site_config", "homepage_gallery"));
+          if (galleryDoc.exists()) {
+            setGallery(galleryDoc.data() as GalleryConfig);
           }
+        } catch (error) {
+          console.warn("Gallery live fetch failed, trying cache:", error);
+          try {
+            const galSnap = await getDocFromCache(doc(db, "site_config", "homepage_gallery"));
+            if (galSnap.exists()) {
+              setGallery(galSnap.data() as GalleryConfig);
+            }
+          } catch (cacheErr) {
+            // Keep default gallery state
+          }
+        }
+      }
 
-          // Try cache for promo
-          const promoSnap = await getDocFromCache(doc(db, "site_config", "active_promo"));
+      // 4. Fetch Active Promo
+      if (!isQuotaActive) {
+        try {
+          const promoSnap = await getDoc(doc(db, "site_config", "active_promo"));
           if (promoSnap.exists() && promoSnap.data().active && promoSnap.data().images?.length === 5) {
             setActivePromo({
               images: promoSnap.data().images,
               active: true
             });
           }
-        } catch (cacheErr) {
-          setAllProducts(staticProducts.filter(p => (!p.status || p.status === 'published') && p.image && (p.image.startsWith('http') || p.image.startsWith('data:image'))));
-          setCategories([
-            { id: "cat-ff", name: "Full-face", image: "https://dainese-cdn.thron.com/delivery/public/image/dainese/35790505-f6f1-41c6-9537-3cbad2f167cc/px6qct/std/960x960/2118395016_027_1.png" },
-            { id: "cat-mc", name: "Motorcycles", image: "https://images.unsplash.com/photo-1626014303757-6bcbe6762b32?q=80&w=200" },
-            { id: "cat-vs", name: "Visor", image: "https://images.unsplash.com/photo-1542124536-1e967396796c?q=80&w=200" },
-            { id: "cat-ac", name: "Accessory", image: "https://images.unsplash.com/photo-1542125387-c71274d94f0a?q=80&w=200" }
-          ]);
+        } catch (error) {
+          console.warn("Promo live fetch failed, trying cache:", error);
+          try {
+            const promoSnap = await getDocFromCache(doc(db, "site_config", "active_promo"));
+            if (promoSnap.exists() && promoSnap.data().active && promoSnap.data().images?.length === 5) {
+              setActivePromo({
+                images: promoSnap.data().images,
+                active: true
+              });
+            }
+          } catch (cacheErr) {
+            // Keep default null
+          }
         }
-      } finally {
-        // Data fetch complete
       }
     }
 

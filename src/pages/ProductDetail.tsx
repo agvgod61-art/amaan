@@ -50,13 +50,19 @@ function ProductDetail() {
           // So if it was deleted from DB, we should respect that.
           setProduct(null);
         }
-      } catch (error) {
-        if (!isQuotaError(error)) {
-          console.error("Error fetching product:", error);
-          setProduct(null);
-        } else {
-          console.warn("Firestore quota exceeded. Using initial static product data.");
+      } catch (error: any) {
+        const isOffline = error?.message?.toLowerCase()?.includes("offline") || 
+                          String(error)?.toLowerCase()?.includes("offline") ||
+                          error?.code === "unavailable";
+        
+        if (isQuotaError(error) || isOffline) {
+          console.warn("Firestore offline or quota exceeded. Using initial static product data.");
           // Keep the static product if it was already set
+        } else {
+          console.error("Error fetching product:", error);
+          if (!product) {
+            setProduct(null);
+          }
         }
       } finally {
         setLoading(false);
