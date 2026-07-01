@@ -1,6 +1,6 @@
 import { products } from "./products";
 
-export const getStoreContext = (siteName: string = "AVG GOD") => {
+export const getStoreContext = (siteName: string = "AGV GOD") => {
   const productInfo = products.map(p => `- ${p.name}: ₹${p.price} (${p.type}) - ${p.description.substring(0, 100)}...`).join('\n');
   
   const policies = `

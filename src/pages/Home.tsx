@@ -442,7 +442,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 2. WHY AVG GOD - Recipe 8 Minimal Utility Grid */}
+      {/* 2. WHY AGV GOD - Recipe 8 Minimal Utility Grid */}
       <section className="py-24 px-6 bg-brand-black">
         <div className="max-w-7xl mx-auto">
           <div className="mb-16 text-center max-w-2xl mx-auto">

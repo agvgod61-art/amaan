@@ -2,7 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
-export async function chatWithGemini(message: string, history: { role: 'user' | 'model', parts: { text: string }[] }[], context: string, siteName: string = "AVG GOD") {
+export async function chatWithGemini(message: string, history: { role: 'user' | 'model', parts: { text: string }[] }[], context: string, siteName: string = "AGV GOD") {
   try {
     const model = "gemini-3-flash-preview";
     

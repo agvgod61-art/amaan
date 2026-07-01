@@ -92,7 +92,7 @@ const Gallery = () => {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-4xl md:text-6xl font-sans font-bold text-white tracking-tighter mb-4 italic uppercase">
-              AVG <span className="text-brand-accent italic">Showcase</span>
+              AGV <span className="text-brand-accent italic">Showcase</span>
             </h1>
             <p className="text-brand-metallic max-w-2xl mx-auto flex items-center justify-center gap-2">
               <Instagram size={16} className="text-brand-accent" />

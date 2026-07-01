@@ -651,7 +651,7 @@ export default function Admin() {
       } else {
         // Initialize default settings if they don't exist
         const defaults = {
-          siteName: "AVG GOD",
+          siteName: "AGV GOD",
           logoImage: "",
           heroTitle: "Premium Riding Equipment",
           heroSubtitle: "Engineered for Performance. Built for Safety.",

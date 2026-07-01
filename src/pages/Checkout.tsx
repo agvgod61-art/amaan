@@ -170,7 +170,7 @@ export default function Checkout() {
 
     // 1. Notification to Customer
     if (customerInfo.whatsappUpdates && customerInfo.phone) {
-      const customerMessage = `Hi ${customerInfo.name || 'Rider'}! 👋\n\nYour order #${newOrderId} is confirmed! ✅\n\n💰 Total: ₹${totalPrice.toLocaleString('en-IN')}\n📅 Est. Delivery: 3-5 business days\n\nKeep this Order ID for reference: ${newOrderId}\n\nQuestions? Reply to this message.\n\nThanks for shopping at AVG Riders! 🏍️`;
+      const customerMessage = `Hi ${customerInfo.name || 'Rider'}! 👋\n\nYour order #${newOrderId} is confirmed! ✅\n\n💰 Total: ₹${totalPrice.toLocaleString('en-IN')}\n📅 Est. Delivery: 3-5 business days\n\nKeep this Order ID for reference: ${newOrderId}\n\nQuestions? Reply to this message.\n\nThanks for shopping at AGV Riders! 🏍️`;
       
       try {
         await fetch('/api/whatsapp', {

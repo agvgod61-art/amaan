@@ -948,7 +948,7 @@ function ProductDetail() {
           {/* Brand & Name */}
           <div className="mb-6">
             <h2 className="text-brand-metallic text-sm tracking-widest uppercase font-bold mb-2 flex justify-between items-center">
-              AVG GOD
+              AGV GOD
               <div className="flex gap-4">
                 <button 
                   onClick={() => setShowShareModal(true)}
@@ -1159,8 +1159,8 @@ function ProductDetail() {
                       {scanResult === "verified" ? <CheckCircle2 size={16} /> : <ShieldCheck size={16} className={cn(isScanning && "animate-pulse")} />}
                       <span>
                         {scanResult === "not_scanned" && "Run Authenticity Scan"}
-                        {scanResult === "scanning" && "Verifying AVG Signature..."}
-                        {scanResult === "verified" && "AVG Guaranteed Genuine"}
+                        {scanResult === "scanning" && "Verifying AGV Signature..."}
+                        {scanResult === "verified" && "AGV Guaranteed Genuine"}
                       </span>
                     </div>
                   </button>

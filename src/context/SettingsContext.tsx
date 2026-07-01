@@ -23,7 +23,7 @@ interface SettingsContextType {
 }
 
 const defaultSettings: SiteSettings = {
-  siteName: "AVG GOD",
+  siteName: "AGV GOD",
   logoImage: "",
   heroTitle: "Premium Riding Equipment",
   heroSubtitle: "Engineered for Performance. Built for Safety.",
@@ -33,7 +33,7 @@ const defaultSettings: SiteSettings = {
   contactPhone: "+91 91522 45837",
   whatsappNumber: "919152245837",
   address: "Ranchi, Jharkhand, India",
-  footerText: "© 2024 AVG GOD. ALL RIGHTS RESERVED.",
+  footerText: "© 2024 AGV GOD. ALL RIGHTS RESERVED.",
   siteAccess: "public"
 };
 

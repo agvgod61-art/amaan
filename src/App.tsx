@@ -94,7 +94,7 @@ function BlockedBarrier({ children }: { children: React.ReactNode }) {
         <Shield size={64} className="text-red-600 mb-8 animate-pulse" />
         <h1 className="text-4xl font-display font-bold uppercase tracking-tighter mb-4 text-white">IDENTITY QUARANTINED</h1>
         <p className="text-brand-metallic text-xs uppercase tracking-[0.2em] max-w-xl leading-relaxed">
-          Your access has been terminated due to a critical violation of AVG security protocols. 
+          Your access has been terminated due to a critical violation of AGV security protocols. 
           Suspicious activities result in permanent identity revocation.
         </p>
         <div className="mt-12 h-px w-24 bg-red-600/30" />
