@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, ShieldCheck, Lock, Truck, CheckCircle2, Trash2, Plus, Minus, ArrowRight } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Lock, Truck, CheckCircle2, Trash2, Plus, Minus, ArrowRight, AlertCircle } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
@@ -386,6 +386,17 @@ export default function Checkout() {
                   <h2 className="text-xl font-display font-bold uppercase tracking-tight">Delivery Details</h2>
                 </div>
 
+                {/* Booking Payment Warning Notice */}
+                <div className="mb-8 p-4 bg-red-950/40 border-l-4 border-brand-accent flex gap-3 items-start rounded-sm shadow-[0_4px_20px_rgba(226,43,43,0.1)]">
+                  <AlertCircle size={20} className="text-brand-accent mt-0.5 flex-shrink-0 animate-bounce" />
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-[0.15em] text-white mb-1">Advance Token Payment Required</h4>
+                    <p className="text-[10px] text-brand-metallic uppercase tracking-wider leading-relaxed">
+                      FIRST PAY THE SMALL ADVANCE AMOUNT TO SECURE YOUR BOOKING, THEN THE ORDER WILL BE PLACED AND PROCESSED! REMAINING VALUE WILL BE COMPLETED UPON MANUALLY VERIFYING SHIPPING VIA WHATSAPP.
+                    </p>
+                  </div>
+                </div>
+
                 <div id="delivery-form" className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1">
                     <label className="text-[8px] text-brand-metallic uppercase tracking-widest font-bold">Full Name *</label>
@@ -484,7 +495,11 @@ export default function Checkout() {
                     {errors.pincode && <p className="text-[9px] text-red-500 uppercase font-bold tracking-widest">{errors.pincode}</p>}
                   </div>
 
-                  <div className="md:col-span-2 mt-8 flex flex-col sm:flex-row gap-4">
+                  <div className="md:col-span-2 mt-8 flex flex-col gap-4">
+                    <p className="text-[10px] text-brand-accent uppercase tracking-[0.15em] font-bold flex items-center gap-2">
+                      <AlertCircle size={14} className="animate-pulse flex-shrink-0" /> 
+                      First pay the small advance amount, then your order will be placed!
+                    </p>
                     <button 
                       type="submit"
                       disabled={isSubmitting}
