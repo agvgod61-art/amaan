@@ -7,6 +7,79 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <script>
+      // Suppress development server HMR WebSocket connection warnings/errors since HMR is disabled
+      if (typeof window !== 'undefined') {
+        const OriginalWebSocket = window.WebSocket;
+        if (OriginalWebSocket) {
+          const mockWebSocket = function(url, protocols) {
+            const urlStr = String(url || '');
+            if (
+              urlStr.includes('vite') || 
+              urlStr.includes('hmr') || 
+              urlStr.includes('localhost') || 
+              urlStr.includes('127.0.0.1') || 
+              urlStr.includes(window.location.host)
+            ) {
+              const noop = () => {};
+              const listeners = new Map();
+              
+              const wsInstance = {
+                url: urlStr,
+                readyState: 3, // CLOSED state
+                bufferedAmount: 0,
+                extensions: "",
+                protocol: "",
+                binaryType: "blob",
+                send: noop,
+                close: noop,
+                addEventListener: function(type, listener) {
+                  if (!listeners.has(type)) {
+                    listeners.set(type, new Set());
+                  }
+                  listeners.get(type).add(listener);
+                },
+                removeEventListener: function(type, listener) {
+                  if (listeners.has(type)) {
+                    listeners.get(type).delete(listener);
+                  }
+                },
+                dispatchEvent: function() { return true; },
+                onopen: null,
+                onclose: null,
+                onerror: null,
+                onmessage: null
+              };
+
+              const defineEventProp = (propName) => {
+                Object.defineProperty(wsInstance, propName, {
+                  get: () => wsInstance['_' + propName] || null,
+                  set: (val) => {
+                    wsInstance['_' + propName] = val;
+                  },
+                  configurable: true,
+                  enumerable: true
+                });
+              };
+              defineEventProp('onopen');
+              defineEventProp('onclose');
+              defineEventProp('onerror');
+              defineEventProp('onmessage');
+
+              return wsInstance;
+            }
+            return new OriginalWebSocket(url, protocols);
+          };
+          
+          mockWebSocket.CONNECTING = 0;
+          mockWebSocket.OPEN = 1;
+          mockWebSocket.CLOSING = 2;
+          mockWebSocket.CLOSED = 3;
+          mockWebSocket.prototype = OriginalWebSocket.prototype;
+          window.WebSocket = mockWebSocket;
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

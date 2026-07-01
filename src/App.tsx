@@ -83,10 +83,6 @@ function AccessControl({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (settings.siteAccess === "members" && !user) {
-    return <Navigate to="/auth" replace />;
-  }
-
   return <>{children}</>;
 }
 
