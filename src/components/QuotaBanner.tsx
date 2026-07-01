@@ -22,8 +22,8 @@ export function QuotaBanner() {
     }
   }, [setQuotaExceeded, isDismissed]);
 
-  const projectId = "helmet-938a2";
-  const firestoreDatabaseId = "(default)";
+  const projectId = "cohesive-bulwark-pskkt";
+  const firestoreDatabaseId = "ai-studio-remixmotogphelme-940ddde2-ba02-4398-8a41-6ac0e8e72adf";
   const upgradeUrl = `https://console.firebase.google.com/project/${projectId}/firestore/databases/${firestoreDatabaseId}/data?openUpgradeDialog=true`;
 
   const handleDismiss = () => {

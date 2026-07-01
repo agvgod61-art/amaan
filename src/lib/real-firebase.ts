@@ -4,13 +4,13 @@ import { getStorage } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBseurLRrRozZG16lP6HIsMtaaAdgTE0vE",
-  authDomain: "helmet-938a2.firebaseapp.com",
-  projectId: "helmet-938a2",
-  storageBucket: "helmet-938a2.firebasestorage.app",
-  messagingSenderId: "871531804108",
-  appId: "1:871531804108:web:95109ca54a50a594925969",
-  measurementId: "G-3KP4LDYC6B"
+  apiKey: "AIzaSyBRCOijJtgYwNqdpeXdi15lZkXRuE9tYQc",
+  authDomain: "cohesive-bulwark-pskkt.firebaseapp.com",
+  projectId: "cohesive-bulwark-pskkt",
+  storageBucket: "cohesive-bulwark-pskkt.firebasestorage.app",
+  messagingSenderId: "222774696933",
+  appId: "1:222774696933:web:b996cb00129658901cad0c",
+  measurementId: ""
 };
 
 // Clear any stale local quota flag since we are connecting to a new project database
@@ -26,7 +26,7 @@ if (typeof window !== "undefined") {
 export const app = initializeApp(firebaseConfig);
 export const firestoreDb = initializeFirestore(app, {
   experimentalForceLongPolling: true,
-});
+}, "ai-studio-remixmotogphelme-940ddde2-ba02-4398-8a41-6ac0e8e72adf");
 export const realStorage = getStorage(app);
 export const auth = getAuth(app);
 

@@ -155,7 +155,7 @@ service cloud.firestore {
     // Products
     match /products/{productId} {
       allow get: if true;
-      allow list: if resource.data.status == 'published' || isAdmin();
+      allow list: if true;
       allow create: if isAdmin() && isValidId(productId) && isValidProduct(incoming());
       allow update: if isAdmin() && isValidProduct(incoming());
       allow delete: if isAdmin();
